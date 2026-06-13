@@ -1,32 +1,35 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 const Header = () => {
-	const [showHeader, setShowHeader] = useState(false);
+	const [scrolled, setScrolled] = useState(false);
 
 	useEffect(() => {
 		const handleScroll = () => {
-			setShowHeader(window.scrollY > 250);
+			setScrolled(window.scrollY > 50);
 		};
 
 		window.addEventListener('scroll', handleScroll);
 
-		return () => {
-			window.removeEventListener('scroll', handleScroll);
-		};
+		return () => window.removeEventListener('scroll', handleScroll);
 	}, []);
 
 	return (
-		<header
-			className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out
-			${showHeader ? 'translate-y-0 opacity-100 py-2 bg-gradient-to-r from-transparent via-white/80 to-transparent backdrop-blur-md' : '-translate-y-full opacity-0 pointer-events-none'}`}>
+		<header className={`sticky top-0 z-50 border-b border-black/5 bg-brand-cream/80 backdrop-blur-md transition-all duration-300 ${scrolled ? 'py-1' : 'py-3'}`}>
 			<div className='container mx-auto px-4'>
-				<div className='flex justify-center items-center'>
-					<Link href='/'>
-						<Image src='/images/mamafarm-logo.png' alt='Mamafarm Logo' width={300} height={120} priority className='h-12 md:h-14 w-auto' />
+				<div className='flex items-center justify-center'>
+					<Link href='/' className='transition-transform duration-300 hover:scale-105'>
+						<Image
+							src='/images/mamafarm-logo.png'
+							alt='Mamafarm Logo'
+							width={300}
+							height={120}
+							priority
+							className={`w-auto transition-all duration-300 ${scrolled ? 'h-10 md:h-14' : 'h-16 md:h-24'}`}
+						/>
 					</Link>
 				</div>
 			</div>
