@@ -1,12 +1,12 @@
-import Benefits from '../components/Benefits';
-import BrandStory from '../components/BrandStory';
-import CTA from '../components/CTA';
-import FAQ from '../components/FAQ';
 import Hero from '../components/Hero';
-import Ingredients from '../components/Ingredients';
-import Nutrition from '../components/Nutrition';
-import ProductShowcase from '../components/ProductShowcase';
-import Stats from '../components/Stats';
+import WhyChoose from '../components/home/WhyChoose';
+import Ingredients from '../components/home/Ingredients';
+import WhyUs from '../components/home/WhyUs';
+import MakingProcess from '../components/home/MakingProcess';
+import Occasions from '../components/home/Occasions';
+import Promise from '../components/home/Promise';
+import Faq from '../components/home/Faq';
+import CTA from '../components/home/CTA';
 
 export default function Home() {
 	const jsonLd = {
@@ -15,10 +15,10 @@ export default function Home() {
 		name: 'Mamafarm',
 		url: 'https://mamafarm.com',
 		logo: 'https://mamafarm.com/images/mamafarm-logo.png',
-		description: 'Pure Ingredients. True Goodness. Organic Food Brand in India.',
+		description: 'Pure Ingredients. True Goodness. Premium food brand specializing in traditional Desi Ghee Besan Laddu in India.',
 		contactPoint: {
 			'@type': 'ContactPoint',
-			telephone: '+91-98765-43210',
+			telephone: '+91-8130188878',
 			contactType: 'customer service',
 		},
 	};
@@ -28,13 +28,13 @@ export default function Home() {
 			<script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
 			<Hero />
-			<Stats />
-			<ProductShowcase />
-			<BrandStory />
-			<Benefits />
+			<WhyChoose />
 			<Ingredients />
-			<Nutrition />
-			<FAQ />
+			<WhyUs />
+			<MakingProcess />
+			<Occasions />
+			<Promise />
+			<Faq />
 			<CTA />
 		</>
 	);

@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-green: #1f5a32;
-  --color-brand-brown: #a56a2a;
-  --color-brand-cream: #f7f2eb;
-  --color-brand-wheat: #e8d9b5;
+  --color-brand-green: #2a4605;
+  --color-brand-brown: #86530c;
+  --color-brand-cream: #fefefe;
+  --color-brand-wheat: #965d14;
 }
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 247, 242, 235; /* brand.cream */
+  --background-start-rgb: 247, 242, 235;
+  /* brand.cream */
   --background-end-rgb: 255, 255, 255;
 }
 
@@ -26,9 +27,11 @@ body {
 @utility btn-primary {
   @apply bg-brand-green text-white px-6 py-3 rounded-md font-medium transition-colors hover:bg-brand-green/90;
 }
+
 @utility btn-secondary {
   @apply bg-brand-brown text-white px-6 py-3 rounded-md font-medium transition-colors hover:bg-brand-brown/90;
 }
+
 @utility btn-outline {
   @apply border-2 border-brand-green text-brand-green px-6 py-3 rounded-md font-medium transition-colors hover:bg-brand-green hover:text-white;
 }

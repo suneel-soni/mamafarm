@@ -9,19 +9,19 @@ const Footer = () => {
 				<div className='mx-auto max-w-4xl text-center'>
 					{/* Logo */}
 					<Link href='/' className='inline-block'>
-						<Image src='/images/mamafarm_logo.png' alt='Mamafarm' width={300} height={120} className='mx-auto h-20 w-auto md:h-24' />
+						<Image src='/images/mamafarm-logo-light.png' alt='Mamafarm' width={300} height={120} className='mx-auto h-20 w-auto md:h-24' />
 					</Link>
 
 					{/* Tagline */}
 					<p className='mt-6 text-xl font-medium text-[#D8C3A5]'>Pure Ingredients. True Goodness.</p>
 
-					<p className='mx-auto mt-4 max-w-2xl text-white/70'>Premium plant-based nutrition made with carefully sourced ingredients. Clean, delicious, and crafted to support your active lifestyle.</p>
+					<p className='mx-auto mt-4 max-w-2xl text-white/70'>Handcrafted Desi Ghee Besan Laddus made with premium ingredients, traditional recipes, and the authentic taste of homemade goodness.</p>
 
 					{/* Contact */}
-					<div className='mt-8 hidden flex-col items-center gap-3 text-sm text-white/70 md:flex-row md:justify-center md:gap-8'>
+					<div className='mt-8 hidden items-center gap-3 text-sm text-white/70 md:flex-row md:justify-center md:gap-8'>
 						<div className='flex items-center gap-2'>
 							<Phone size={16} />
-							<span>+91 1234567890</span>
+							<span>+91 8130188878</span>
 						</div>
 
 						<div className='flex items-center gap-2'>
@@ -31,8 +31,8 @@ const Footer = () => {
 					</div>
 
 					{/* Social Links */}
-					<div className='mt-8 flex justify-center gap-4'>
-						<Link href='#' className='rounded-full border border-white/15 p-3 transition hover:bg-white/10'>
+					<div className='mt-8 hidden justify-center gap-4'>
+						<Link href='https://www.instagram.com/mamafarm_in' className='rounded-full border border-white/15 p-3 transition hover:bg-white/10'>
 							<Instagram size={20} />
 						</Link>
 

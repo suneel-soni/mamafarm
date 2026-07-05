@@ -9,7 +9,7 @@ const Header = () => {
 
 	useEffect(() => {
 		const handleScroll = () => {
-			setScrolled(window.scrollY > 50);
+			setScrolled(window.scrollY > 100);
 		};
 
 		window.addEventListener('scroll', handleScroll);
@@ -18,17 +18,22 @@ const Header = () => {
 	}, []);
 
 	return (
-		<header className={`sticky top-0 z-50 border-b border-black/5 bg-brand-cream/80 backdrop-blur-md transition-all duration-300 ${scrolled ? 'py-1' : 'py-3'}`}>
+		<header
+			className={`fixed top-0 left-0 right-0 z-50 border-b border-black/5 bg-brand-cream/90 backdrop-blur-md transition-all duration-500 ease-in-out ${scrolled
+					? 'translate-y-0 opacity-100 shadow-sm py-2'
+					: '-translate-y-full opacity-0 pointer-events-none py-2'
+				}`}
+		>
 			<div className='container mx-auto px-4'>
 				<div className='flex items-center justify-center'>
 					<Link href='/' className='transition-transform duration-300 hover:scale-105'>
 						<Image
-							src='/images/mamafarm-logo.png'
+							src='/images/mamafarm-logo-light.png'
 							alt='Mamafarm Logo'
 							width={300}
 							height={120}
 							priority
-							className={`w-auto transition-all duration-300 ${scrolled ? 'h-10 md:h-14' : 'h-16 md:h-24'}`}
+							className='h-10 md:h-14 w-auto transition-all duration-300'
 						/>
 					</Link>
 				</div>
