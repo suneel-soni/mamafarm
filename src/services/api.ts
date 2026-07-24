@@ -2,10 +2,13 @@ import axios from 'axios';
 import { Material, Supplier, Shop } from '../types';
 
 const getBaseApiUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    return '/api';
+  }
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  return 'http://127.0.0.1:5000/api';
+  return 'http://127.0.0.1:3000/api';
 };
 
 const API_URL = getBaseApiUrl();
