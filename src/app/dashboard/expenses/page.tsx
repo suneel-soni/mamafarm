@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { expensesAPI } from '@/services/api';
 import { Expense } from '@/types';
-import { Receipt, Plus, Check, X, IndianRupee, PieChart } from 'lucide-react';
+import { Receipt, Plus, Check, X, IndianRupee, PieChart, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,13 +34,21 @@ export default function ExpensesPage() {
     },
   });
 
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadExpenses = async () => {
     setLoading(true);
     try {
       const res = await expensesAPI.getAll();
-      if (res.success) setExpenses(res.data || []);
-    } catch (err) {
-      console.error(err);
+      if (res.success) {
+        setExpenses(res.data || []);
+        if (res.isFallback) showWarning('Server offline. Showing cached expenses.');
+      } else {
+        showError(res.message || 'Failed to load expenses.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Unexpected error loading expenses.');
     } finally {
       setLoading(false);
     }
@@ -50,16 +59,22 @@ export default function ExpensesPage() {
   }, []);
 
   const onSubmit = async (data: ExpenseFormData) => {
+    setIsSubmitting(true);
     try {
       const res = await expensesAPI.create(data);
       if (res.success) {
-        setToast(`Recorded expense ₹${data.amount} for ${data.title}!`);
+        if (res.isFallback) showWarning(res.message || 'Expense saved locally (Offline mode).');
+        else showSuccess(`Recorded expense ₹${data.amount} for ${data.title}!`);
         setModalOpen(false);
         reset();
         loadExpenses();
+      } else {
+        showError(res.message || 'Failed to save expense.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred while saving expense.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

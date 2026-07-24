@@ -13,7 +13,9 @@ import {
   FileText,
   X,
   Check,
+  Loader2,
 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export default function ShopDetailsClient() {
@@ -41,15 +43,21 @@ export default function ShopDetailsClient() {
   const [returnRate, setReturnRate] = useState(25);
   const [returnReason, setReturnReason] = useState('Unsold / Expired Return');
 
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadShopDetails = async () => {
     setLoading(true);
     try {
       const res = await shopsAPI.getById(shopId);
       if (res.success && res.data) {
         setDetails(res.data);
+        if (res.isFallback) showWarning('Server offline. Showing cached shop ledger.');
+      } else {
+        showError(res.message || 'Failed to load shop partner details.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'Error loading shop details.');
     } finally {
       setLoading(false);
     }
@@ -61,6 +69,7 @@ export default function ShopDetailsClient() {
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const payload = {
         shopId,
@@ -80,17 +89,23 @@ export default function ShopDetailsClient() {
 
       const res = await deliveriesAPI.create(payload);
       if (res.success) {
-        setToast('New Order Dispatched!');
+        if (res.isFallback) showWarning(res.message || 'Order dispatched locally (Offline mode).');
+        else showSuccess('New Order Dispatched!');
         setOrderModalOpen(false);
         loadShopDetails();
+      } else {
+        showError(res.message || 'Failed to dispatch order.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'Error dispatching order.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleReturnOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const payload = {
         shopId,
@@ -108,12 +123,17 @@ export default function ShopDetailsClient() {
 
       const res = await returnsAPI.create(payload);
       if (res.success) {
-        setToast('Return Recorded!');
+        if (res.isFallback) showWarning(res.message || 'Return recorded locally (Offline mode).');
+        else showSuccess('Return Recorded!');
         setReturnModalOpen(false);
         loadShopDetails();
+      } else {
+        showError(res.message || 'Failed to record return.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'Error recording return.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

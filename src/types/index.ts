@@ -135,7 +135,7 @@ export interface SalesPerformanceData {
     deliveredQty: number;
     image?: string;
   }[];
-  dailyGraph: { date: string; sales: number; deliveries: number }[];
+  dailyGraph: { date: string; sales: number; deliveries?: number }[];
   monthlyGraph: { month: string; sales: number; collections: number }[];
 }
 
@@ -149,7 +149,7 @@ export interface ShopDetailsData {
     totalPaidAmount: number;
     pendingPayment: number;
   };
-  salesGraph: { date: string; amount: number; quantity: number }[];
+  salesGraph: { date: string; amount: number; quantity?: number }[];
   recentOrders: Delivery[];
   recentReturns: ReturnOrder[];
   ledger: {
@@ -157,9 +157,9 @@ export interface ShopDetailsData {
     type: 'delivery' | 'payment' | 'return';
     reference: string;
     description: string;
-    debit: number; // Charges (Delivery)
-    credit: number; // Payments / Returns
-    balance: number; // Running Outstanding Balance
+    debit: number;
+    credit: number;
+    balance: number;
   }[];
 }
 
@@ -167,6 +167,8 @@ export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
   data?: T;
+  isFallback?: boolean;
+  statusCode?: number;
 }
 
 export interface DashboardKPIs {
@@ -190,10 +192,18 @@ export interface ActivityLogItem {
 export interface ProductionBatch {
   _id: string;
   batchNumber: string;
-  grainType: string;
-  grainQuantityKg: number;
+  grainType?: string;
+  grainQuantityKg?: number;
+  rawMaterialQty?: number;
+  unit?: string;
+  rawMaterialName?: string;
+  sproutsProducedQty?: number;
+  sproutsUnit?: string;
+  wasteQty?: number;
+  lossPercent?: number;
   soakedDate?: string;
-  yieldPackets: number;
+  completionDate?: string;
+  yieldPackets?: number;
   sproutType: string;
   status: 'soaking' | 'germinating' | 'ready' | 'dispatched' | 'completed';
   notes?: string;
@@ -215,8 +225,26 @@ export interface Expense {
   title: string;
   category: string;
   amount: number;
-  date: string;
+  date?: string;
+  expenseDate?: string;
+  paymentMethod?: string;
   paidTo?: string;
   notes?: string;
 }
 
+export interface NavItem {
+  name?: string;
+  label?: string;
+  href: string;
+  icon?: any;
+}
+
+export interface Product {
+  id: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  price?: number;
+  image?: string;
+  features?: string[];
+}

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Phone, ArrowRight, ShieldCheck } from 'lucide-react';
 import { authAPI } from '@/services/api';
+import { useToast } from '@/context/ToastContext';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const { showSuccess, showError } = useToast();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -19,17 +22,22 @@ export default function LoginPage() {
 
     try {
       const res = await authAPI.login(mobile, password);
-      const token = res.data?.token || res.token;
+      const token = res.data?.token || (res as any)?.token;
       if (res.success && token) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('mamafarm_token', token);
         }
+        showSuccess('Login successful! Redirecting...');
         router.push('/dashboard/sales');
       } else {
-        setError(res.message || 'Invalid mobile number or password');
+        const errMsg = res.message || 'Invalid mobile number or password';
+        setError(errMsg);
+        showError(errMsg);
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      const errMsg = err.message || 'Authentication failed';
+      setError(errMsg);
+      showError(errMsg);
     } finally {
       setLoading(false);
     }

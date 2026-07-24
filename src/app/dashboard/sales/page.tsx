@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { dashboardAPI } from '@/services/api';
 import { SalesPerformanceData } from '@/types';
 import { TrendingUp, ArrowUpRight, Award, BarChart3 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -21,14 +22,21 @@ export default function SalesPerformancePage() {
   const [salesData, setSalesData] = useState<SalesPerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const { showError, showWarning } = useToast();
+
   useEffect(() => {
     async function loadSales() {
       setLoading(true);
       try {
         const res = await dashboardAPI.getSalesPerformance();
-        if (res.success) setSalesData(res.data);
-      } catch (err) {
-        console.error(err);
+        if (res.success) {
+          setSalesData(res.data);
+          if (res.isFallback) showWarning('Server offline. Showing cached sales analytics.');
+        } else {
+          showError(res.message || 'Failed to load sales analytics.');
+        }
+      } catch (err: any) {
+        showError(err.message || 'Error loading sales performance.');
       } finally {
         setLoading(false);
       }

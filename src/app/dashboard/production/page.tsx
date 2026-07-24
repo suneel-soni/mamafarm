@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { productionAPI, materialsAPI } from '@/services/api';
 import { ProductionBatch, Material } from '@/types';
-import { Factory, Plus, Check, X, Flame, AlertCircle } from 'lucide-react';
+import { Factory, Plus, Check, X, Flame, AlertCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,7 +30,7 @@ export default function ProductionPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, watch } = useForm<ProductionFormData>({
+  const { register, handleSubmit, reset, watch } = useForm<any>({
     resolver: zodResolver(productionSchema),
     defaultValues: {
       unit: 'kg',
@@ -42,14 +43,21 @@ export default function ProductionPage() {
   const watchWaste = watch('wasteQty') || 0;
   const estimatedLoss = watchRawQty > 0 ? ((watchWaste / watchRawQty) * 100).toFixed(1) : '0';
 
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadData = async () => {
     setLoading(true);
     try {
       const [batchRes, matRes] = await Promise.all([productionAPI.getAll(), materialsAPI.getAll()]);
       if (batchRes.success) setBatches(batchRes.data || []);
       if (matRes.success) setMaterials(matRes.data || []);
-    } catch (err) {
-      console.error(err);
+
+      if (batchRes.isFallback || matRes.isFallback) {
+        showWarning('Server offline. Displaying cached production batches.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Failed to load production data.');
     } finally {
       setLoading(false);
     }
@@ -60,16 +68,22 @@ export default function ProductionPage() {
   }, []);
 
   const onSubmit = async (data: ProductionFormData) => {
+    setIsSubmitting(true);
     try {
       const res = await productionAPI.create(data);
       if (res.success) {
-        setToast(`Batch logged! Raw material consumed and finished sprouts inventory updated.`);
+        if (res.isFallback) showWarning(res.message || 'Batch logged locally (Offline mode).');
+        else showSuccess('Batch logged! Raw material consumed and sprouts stock updated.');
         setModalOpen(false);
         reset();
         loadData();
+      } else {
+        showError(res.message || 'Failed to log production batch.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred while logging batch.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

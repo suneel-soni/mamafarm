@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { suppliersAPI } from '@/services/api';
 import { Supplier } from '@/types';
-import { Users, Plus, Search, Check, X, Phone, Mail, Building } from 'lucide-react';
+import { Users, Plus, Search, Check, X, Phone, Mail, Building, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,13 +38,21 @@ export default function SuppliersPage() {
     resolver: zodResolver(supplierSchema),
   });
 
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadSuppliers = async () => {
     setLoading(true);
     try {
       const res = await suppliersAPI.getAll();
-      if (res.success) setSuppliers(res.data || []);
-    } catch (err) {
-      console.error(err);
+      if (res.success) {
+        setSuppliers(res.data || []);
+        if (res.isFallback) showWarning('Server offline. Showing cached suppliers.');
+      } else {
+        showError(res.message || 'Failed to load suppliers.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Unexpected error loading suppliers.');
     } finally {
       setLoading(false);
     }
@@ -54,16 +63,22 @@ export default function SuppliersPage() {
   }, []);
 
   const onSubmit = async (data: SupplierFormData) => {
+    setIsSubmitting(true);
     try {
       const res = await suppliersAPI.create(data);
       if (res.success) {
-        setToast(`Supplier ${data.name} added!`);
+        if (res.isFallback) showWarning(res.message || `Supplier ${data.name} saved locally.`);
+        else showSuccess(`Supplier ${data.name} registered!`);
         setModalOpen(false);
         reset();
         loadSuppliers();
+      } else {
+        showError(res.message || 'Failed to create supplier.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred while saving supplier.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -248,8 +263,10 @@ export default function SuppliersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-900/40"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-900/40 flex items-center gap-1.5"
                   >
+                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     Save Supplier
                   </button>
                 </div>

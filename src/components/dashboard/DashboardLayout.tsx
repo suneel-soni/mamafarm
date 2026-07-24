@@ -108,11 +108,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <img src="/logo.png" alt="MamaFarm Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <div className="flex items-center gap-1">
-                <span className="font-extrabold text-sm text-[#283C06] bg-[#F4EDD6] px-1.5 py-0.2 rounded-md">Mama</span>
-                <span className="font-extrabold text-sm text-[#8B7E2A]">Farm</span>
-              </div>
-              <p className="text-[9px] text-[#8B7E2A] font-semibold">{currentTab.label}</p>
+              <p className="font-extrabold text-base text-[#8B7E2A]">{currentTab.label}</p>
             </div>
           </div>
 

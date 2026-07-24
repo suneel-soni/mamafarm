@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { deliveriesAPI, shopsAPI } from '@/services/api';
 import { Delivery, Shop } from '@/types';
-import { Truck, Plus, FileText, Check, X, Printer, IndianRupee, Store } from 'lucide-react';
+import { Truck, Plus, FileText, Check, X, Printer, IndianRupee, Store, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -23,14 +24,21 @@ export default function DeliveriesPage() {
     { sproutType: 'Moong Sprouts', quantity: 50, rate: 25, unit: 'packets' },
   ]);
 
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadData = async () => {
     setLoading(true);
     try {
       const [delRes, shopRes] = await Promise.all([deliveriesAPI.getAll(), shopsAPI.getAll()]);
       if (delRes.success) setDeliveries(delRes.data || []);
       if (shopRes.success) setShops(shopRes.data || []);
-    } catch (err) {
-      console.error(err);
+
+      if (delRes.isFallback || shopRes.isFallback) {
+        showWarning('Server offline. Displaying cached deliveries and shops.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Failed to load delivery records.');
     } finally {
       setLoading(false);
     }
@@ -61,8 +69,9 @@ export default function DeliveriesPage() {
 
   const handleCreateDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedShopId) return alert('Please select a retail shop.');
+    if (!selectedShopId) return showError('Please select a retail shop partner.');
 
+    setIsSubmitting(true);
     try {
       const payload = {
         shopId: selectedShopId,
@@ -74,12 +83,20 @@ export default function DeliveriesPage() {
 
       const res = await deliveriesAPI.create(payload);
       if (res.success) {
-        setToast('Delivery dispatched! Outstanding dues and inventory stock updated.');
+        if (res.isFallback) {
+          showWarning(res.message || 'Delivery saved locally (Offline mode).');
+        } else {
+          showSuccess('Delivery dispatched! Dues and stock updated successfully.');
+        }
         setModalOpen(false);
         loadData();
+      } else {
+        showError(res.message || 'Failed to dispatch delivery.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred while dispatching delivery.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

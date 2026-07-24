@@ -5,18 +5,26 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { reportsAPI } from '@/services/api';
 import { BarChart3, Download, Printer, TrendingUp, IndianRupee, Store, Calendar } from 'lucide-react';
 
+import { useToast } from '@/context/ToastContext';
+
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { showError, showWarning } = useToast();
 
   useEffect(() => {
     async function loadReports() {
       setLoading(true);
       try {
         const res = await reportsAPI.getReports();
-        if (res.success) setReportData(res.data);
-      } catch (err) {
-        console.error(err);
+        if (res.success) {
+          setReportData(res.data);
+          if (res.isFallback) showWarning('Server offline. Showing cached report data.');
+        } else {
+          showError(res.message || 'Failed to load business reports.');
+        }
+      } catch (err: any) {
+        showError(err.message || 'Error loading business reports.');
       } finally {
         setLoading(false);
       }

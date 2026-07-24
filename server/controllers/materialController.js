@@ -50,7 +50,7 @@ exports.getMaterialSummary = async (req, res) => {
     const groupedMap = {};
 
     materials.forEach((mat) => {
-      const cost = Number(mat.quantity || 0) * Number(mat.purchasePrice || 0) * (1 + Number(mat.gstPercent || 0) / 100);
+      const cost = Number(mat.quantity || 0) * Number(mat.purchasePrice || 0);
       totalPurchaseCost += cost;
 
       const d = mat.purchaseDate || mat.createdAt || new Date();
@@ -106,7 +106,7 @@ exports.createMaterial = async (req, res) => {
   try {
     const { name, category, supplier, quantity, unit, purchasePrice, gstPercent, minStockAlert, invoiceNumber, paymentStatus, notes, purchaseDate } = req.body;
     
-    const totalCost = Number(quantity || 0) * Number(purchasePrice || 0) * (1 + Number(gstPercent || 0) / 100);
+    const totalCost = Number(quantity || 0) * Number(purchasePrice || 0);
 
     const material = await Material.create({
       name,

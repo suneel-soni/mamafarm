@@ -183,8 +183,19 @@ exports.getShopById = async (req, res) => {
   }
 };
 
+function validateImageSize(imageString) {
+  if (imageString && typeof imageString === 'string' && imageString.startsWith('data:image')) {
+    const sizeInBytes = Math.round((imageString.length * 3) / 4);
+    const sizeInKb = Math.round(sizeInBytes / 1024);
+    if (sizeInKb > 105) {
+      throw new Error(`Shop photo size (${sizeInKb}KB) exceeds the 100KB limit. Please upload a compressed photo.`);
+    }
+  }
+}
+
 exports.createShop = async (req, res) => {
   try {
+    validateImageSize(req.body.image);
     if (!req.body.shopCode) {
       const count = await Shop.countDocuments();
       req.body.shopCode = `SHOP-${101 + count}`;
@@ -198,6 +209,7 @@ exports.createShop = async (req, res) => {
 
 exports.updateShop = async (req, res) => {
   try {
+    validateImageSize(req.body.image);
     const shop = await Shop.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ success: true, data: shop });
   } catch (error) {

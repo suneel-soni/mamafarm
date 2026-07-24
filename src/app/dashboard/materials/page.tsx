@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { materialsAPI, suppliersAPI } from '@/services/api';
 import { MaterialGroupedSummary, Supplier } from '@/types';
-import { Wheat, Plus, Calendar, Filter, X, Check, Edit2 } from 'lucide-react';
+import { Wheat, Plus, Calendar, Filter, X, Check, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,7 +17,7 @@ const materialSchema = z.object({
   quantity: z.number().min(1, 'Min 1'),
   unit: z.string().min(1, 'Unit required'),
   purchasePrice: z.number().min(0, 'Min 0'),
-  gstPercent: z.number().default(0),
+  gstPercent: z.number().optional().default(0),
   invoiceNumber: z.string().optional(),
   paymentStatus: z.enum(['paid', 'pending', 'partial']).default('paid'),
   purchaseDate: z.string().optional(),
@@ -25,7 +26,7 @@ const materialSchema = z.object({
 type MaterialFormData = z.infer<typeof materialSchema>;
 
 export default function MaterialSummaryPage() {
-  const [summaryData, setSummaryData] = useState<MaterialGroupedSummary | null>(null);
+  const [summaryData, setSummaryData] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [filter, setFilter] = useState<'today' | 'yesterday' | 'this_week' | 'this_month' | 'custom'>('this_month');
   const [startDate, setStartDate] = useState('');
@@ -43,23 +44,30 @@ export default function MaterialSummaryPage() {
     reset,
     setValue,
     formState: { errors },
-  } = useForm<MaterialFormData>({
+  } = useForm<any>({
     resolver: zodResolver(materialSchema),
     defaultValues: {
       category: 'Raw Bean',
       unit: 'kg',
-      gstPercent: 5,
       paymentStatus: 'paid',
     },
   });
+
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadSummary = async () => {
     setLoading(true);
     try {
       const res = await materialsAPI.getSummary({ filter, startDate, endDate });
-      if (res.success) setSummaryData(res.data);
-    } catch (err) {
-      console.error(err);
+      if (res.success) {
+        setSummaryData(res.data);
+        if (res.isFallback) showWarning('Server offline. Displaying cached materials.');
+      } else {
+        showError(res.message || 'Failed to load material summary.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Error loading material summary.');
     } finally {
       setLoading(false);
     }
@@ -74,8 +82,8 @@ export default function MaterialSummaryPage() {
       try {
         const res = await suppliersAPI.getAll();
         if (res.success) setSuppliers(res.data || []);
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        showError(err.message || 'Failed to load suppliers.');
       }
     }
     loadSuppliers();
@@ -90,7 +98,6 @@ export default function MaterialSummaryPage() {
       quantity: 50,
       unit: 'kg',
       purchasePrice: 95,
-      gstPercent: 5,
       invoiceNumber: '',
       paymentStatus: 'paid',
     });
@@ -105,33 +112,57 @@ export default function MaterialSummaryPage() {
     setValue('quantity', mat.quantity || 0);
     setValue('unit', mat.unit || 'kg');
     setValue('purchasePrice', mat.purchasePrice || 0);
-    setValue('gstPercent', mat.gstPercent || 0);
     setValue('invoiceNumber', mat.invoiceNumber || '');
     setValue('paymentStatus', mat.paymentStatus || 'paid');
     setModalOpen(true);
   };
 
   const onSubmit = async (data: MaterialFormData) => {
+    setIsSubmitting(true);
     try {
       if (editingMaterial) {
         const res = await materialsAPI.update(editingMaterial._id, data);
         if (res.success) {
-          setToast(`Updated ${data.name}`);
+          if (res.isFallback) showWarning(res.message || `Updated ${data.name} locally.`);
+          else showSuccess(`Updated ${data.name} purchase record!`);
           setModalOpen(false);
           setEditingMaterial(null);
           loadSummary();
+        } else {
+          showError(res.message || 'Failed to update material purchase.');
         }
       } else {
         const res = await materialsAPI.create(data);
         if (res.success) {
-          setToast(`Added ${data.quantity} ${data.unit} of ${data.name}`);
+          if (res.isFallback) showWarning(res.message || `Added ${data.name} locally.`);
+          else showSuccess(`Recorded purchase of ${data.quantity} ${data.unit} ${data.name}!`);
           setModalOpen(false);
           reset();
           loadSummary();
+        } else {
+          showError(res.message || 'Failed to record material purchase.');
         }
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred while saving.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete material purchase "${name}"?`)) return;
+    try {
+      const res = await materialsAPI.delete(id);
+      if (res.success) {
+        if (res.isFallback) showWarning(res.message || `Deleted ${name} locally.`);
+        else showSuccess(`Deleted ${name} purchase record.`);
+        loadSummary();
+      } else {
+        showError(res.message || 'Failed to delete material purchase.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Error deleting material purchase.');
     }
   };
 
@@ -207,10 +238,10 @@ export default function MaterialSummaryPage() {
         <div className="space-y-3">
           {loading ? (
             <div className="p-8 text-center text-slate-400 text-xs">Loading material purchases...</div>
-          ) : !summaryData || summaryData.groupedSummary.length === 0 ? (
+          ) : !summaryData || !summaryData.groupedSummary || summaryData.groupedSummary.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No material purchases in this period.</div>
           ) : (
-            summaryData.groupedSummary.map((group, idx) => (
+            summaryData.groupedSummary.map((group: any, idx: number) => (
               <div key={idx} className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3.5 shadow-md space-y-2">
                 <div className="flex justify-between items-center border-b border-emerald-900/30 pb-2">
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
@@ -222,7 +253,7 @@ export default function MaterialSummaryPage() {
                 </div>
 
                 <div className="space-y-2 pt-1">
-                  {group.materials.map((mat) => (
+                  {group.materials.map((mat: any) => (
                     <div key={mat._id} className="bg-slate-800/60 border border-emerald-900/30 rounded-xl p-2.5 text-xs space-y-1.5">
                       <div className="flex justify-between items-start">
                         <div>
@@ -234,6 +265,13 @@ export default function MaterialSummaryPage() {
                               title="Edit Material Purchase"
                             >
                               <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMaterial(mat._id, mat.name)}
+                              className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-700/80 rounded-lg transition-all"
+                              title="Delete Material Purchase"
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
                           <p className="text-[10px] text-slate-400">
@@ -247,7 +285,7 @@ export default function MaterialSummaryPage() {
                       <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-emerald-900/20">
                         <span>Rate: ₹{mat.purchasePrice}/{mat.unit}</span>
                         <span className="font-bold text-emerald-400">
-                          Total: ₹{Math.round(mat.quantity * mat.purchasePrice * (1 + (mat.gstPercent || 0) / 100)).toLocaleString('en-IN')}
+                          Total: ₹{Math.round(mat.quantity * mat.purchasePrice).toLocaleString('en-IN')}
                         </span>
                       </div>
                     </div>
@@ -279,7 +317,7 @@ export default function MaterialSummaryPage() {
                     placeholder="e.g. Green Moong Grain (50kg Bag)"
                     className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                   />
-                  {errors.name && <p className="text-[10px] text-rose-400 mt-0.5">{errors.name.message}</p>}
+                  {errors.name && <p className="text-[10px] text-rose-400 mt-0.5">{String(errors.name?.message)}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -351,8 +389,10 @@ export default function MaterialSummaryPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-emerald-600 text-white rounded-xl font-bold"
+                    disabled={isSubmitting}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold flex items-center gap-1.5"
                   >
+                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {editingMaterial ? 'Update Purchase' : 'Save Purchase'}
                   </button>
                 </div>

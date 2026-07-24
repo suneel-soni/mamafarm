@@ -8,7 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000,
+  timeout: 8000,
 });
 
 api.interceptors.request.use((config) => {
@@ -20,6 +20,46 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  isFallback?: boolean;
+  statusCode?: number;
+}
+
+export const extractApiError = (error: any): { message: string; statusCode?: number; isNetworkError: boolean } => {
+  if (error.response) {
+    const status = error.response.status;
+    const data = error.response.data;
+
+    let message = data?.message || data?.error;
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+      message = data.errors.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ');
+    }
+
+    if (!message) {
+      if (status === 400) message = 'Invalid data submitted. Please check inputs.';
+      else if (status === 401) message = 'Session expired or unauthenticated. Please log in.';
+      else if (status === 403) message = 'Access denied. You lack permissions for this action.';
+      else if (status === 404) message = 'Requested record or endpoint not found on server.';
+      else if (status === 409) message = 'A record with these details already exists.';
+      else if (status === 413) message = 'Payload or image file exceeds size limit.';
+      else if (status >= 500) message = 'Server internal error. Please try again later.';
+      else message = `Server error HTTP ${status}`;
+    }
+
+    return { message, statusCode: status, isNetworkError: false };
+  } else if (error.request) {
+    if (error.code === 'ECONNABORTED') {
+      return { message: 'Server connection timed out.', isNetworkError: true };
+    }
+    return { message: 'Unable to connect to MamaFarm server. Operating in offline mode.', isNetworkError: true };
+  } else {
+    return { message: error.message || 'An unexpected client error occurred.', isNetworkError: false };
+  }
+};
 
 // Helper for client-side persistent storage fallback
 const getStorage = <T>(key: string, defaultValue: T): T => {
@@ -80,23 +120,6 @@ const initSeedData = () => {
         totalReturnedQuantity: 10,
         totalDeliveredValue: 12400,
         totalPaidAmount: 9200,
-      },
-      {
-        _id: '6a6318e02d2a89cee171ce51',
-        shopCode: 'SHOP-103',
-        shopName: 'Organic Life Supermarket',
-        ownerName: 'Neha Sharma',
-        phone: '+91 9955443322',
-        address: 'Galleria Market, Gurugram',
-        area: 'Gurugram Sector 28',
-        gstNumber: '06ORGAN9012E1Z8',
-        image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
-        currentQuantity: 80,
-        outstandingBalance: 0,
-        totalDeliveredQuantity: 80,
-        totalReturnedQuantity: 0,
-        totalDeliveredValue: 15600,
-        totalPaidAmount: 15600,
       },
     ]);
   }
@@ -173,39 +196,33 @@ const initSeedData = () => {
 initSeedData();
 
 export const authAPI = {
-  login: async (mobile: string, password: string) => {
+  login: async (mobile: string, password: string): Promise<ApiResponse> => {
     try {
       const res = await api.post('/auth/login', { mobile, password });
       return res.data;
     } catch (error: any) {
-      if (error.response && error.response.data) {
-        return error.response.data;
-      }
-      return {
-        success: false,
-        message: 'Invalid mobile number or password',
-      };
+      const errInfo = extractApiError(error);
+      return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
     }
   },
-  getMe: async () => {
+  getMe: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/auth/me');
       return res.data;
     } catch (error: any) {
-      if (error.response && error.response.data) {
-        return error.response.data;
-      }
-      return { success: false, message: 'Unauthenticated session' };
+      const errInfo = extractApiError(error);
+      return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
     }
   },
 };
 
 export const dashboardAPI = {
-  getSummary: async () => {
+  getSummary: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/dashboard');
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       const shops = getStorage<any[]>('shops', []);
       const deliveries = getStorage<any[]>('deliveries', []);
       const expenses = getStorage<any[]>('expenses', []);
@@ -217,6 +234,8 @@ export const dashboardAPI = {
 
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: {
           kpis: {
             totalRevenue,
@@ -245,14 +264,17 @@ export const dashboardAPI = {
       };
     }
   },
-  getSalesPerformance: async () => {
+  getSalesPerformance: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/dashboard/sales');
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       const shops = getStorage<any[]>('shops', []);
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: {
           todaySales: 8400,
           weeklySales: 36500,
@@ -274,23 +296,27 @@ export const dashboardAPI = {
 };
 
 export const materialsAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/materials');
       return res.data;
-    } catch {
-      return { success: true, data: getStorage('materials', []) };
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: true, isFallback: true, message: errInfo.message, data: getStorage('materials', []) };
     }
   },
-  getSummary: async () => {
+  getSummary: async (params?: any): Promise<ApiResponse> => {
     try {
-      const res = await api.get('/materials/summary');
+      const res = await api.get('/materials/summary', { params });
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       const materials = getStorage<any[]>('materials', []);
       const totalPurchaseCost = materials.reduce((acc, m) => acc + (m.currentStock || 0) * (m.unitPrice || 0), 0);
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: {
           totalPurchaseCost,
           numberOfPurchases: materials.length,
@@ -300,87 +326,116 @@ export const materialsAPI = {
       };
     }
   },
-  create: async (data: Partial<Material>) => {
+  create: async (data: Partial<Material>): Promise<ApiResponse> => {
     try {
       const res = await api.post('/materials', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('materials', []);
       const newMaterial = {
         _id: `MAT-${101 + list.length}`,
         materialCode: `MAT-${101 + list.length}`,
         ...data,
       };
-      const updated = [newMaterial, ...list];
-      setStorage('materials', updated);
-      return { success: true, data: newMaterial };
+      setStorage('materials', [newMaterial, ...list]);
+      return { success: true, isFallback: true, message: 'Server offline. Material saved locally.', data: newMaterial };
     }
   },
-  update: async (id: string, data: Partial<Material>) => {
+  update: async (id: string, data: Partial<Material>): Promise<ApiResponse> => {
     try {
       const res = await api.put(`/materials/${id}`, data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('materials', []);
       const updated = list.map((m) => (m._id === id || m.materialCode === id ? { ...m, ...data } : m));
       setStorage('materials', updated);
-      return { success: true, data: { _id: id, ...data } };
+      return { success: true, isFallback: true, message: 'Server offline. Updated locally.', data: { _id: id, ...data } };
+    }
+  },
+  delete: async (id: string): Promise<ApiResponse> => {
+    try {
+      const res = await api.delete(`/materials/${id}`);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      const list = getStorage<any[]>('materials', []);
+      const updated = list.filter((m) => m._id !== id && m.materialCode !== id);
+      setStorage('materials', updated);
+      return { success: true, isFallback: true, message: 'Server offline. Material deleted locally.' };
     }
   },
 };
 
 export const suppliersAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/suppliers');
       return res.data;
-    } catch {
-      return { success: true, data: getStorage('suppliers', []) };
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: true, isFallback: true, message: errInfo.message, data: getStorage('suppliers', []) };
     }
   },
-  create: async (data: Partial<Supplier>) => {
+  create: async (data: Partial<Supplier>): Promise<ApiResponse> => {
     try {
       const res = await api.post('/suppliers', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('suppliers', []);
       const newSupplier = {
         _id: `SUP-${101 + list.length}`,
         supplierCode: `SUP-${101 + list.length}`,
         ...data,
       };
-      const updated = [newSupplier, ...list];
-      setStorage('suppliers', updated);
-      return { success: true, data: newSupplier };
+      setStorage('suppliers', [newSupplier, ...list]);
+      return { success: true, isFallback: true, message: 'Server offline. Supplier saved locally.', data: newSupplier };
     }
   },
 };
 
 export const shopsAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/shops');
       if (res.data?.success && Array.isArray(res.data.data)) {
         setStorage('shops', res.data.data);
       }
       return res.data;
-    } catch {
-      return { success: true, data: getStorage('shops', []) };
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: true, isFallback: true, message: errInfo.message, data: getStorage('shops', []) };
     }
   },
-  getById: async (id: string) => {
+  getById: async (id: string): Promise<ApiResponse> => {
     try {
       const res = await api.get(`/shops/${id}`);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       const shops = getStorage<any[]>('shops', []);
       const deliveries = getStorage<any[]>('deliveries', []);
       const shop = shops.find((s) => s._id === id || s.shopCode === id) || shops[0];
-
       const shopDeliveries = deliveries.filter((d) => d.shopId === shop?._id || d.shop === shop?._id);
 
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: {
           shop,
           summary: {
@@ -408,11 +463,15 @@ export const shopsAPI = {
       };
     }
   },
-  create: async (data: Partial<Shop>) => {
+  create: async (data: Partial<Shop>): Promise<ApiResponse> => {
     try {
       const res = await api.post('/shops', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('shops', []);
       const newShop = {
         _id: `SHOP-${101 + list.length}`,
@@ -425,41 +484,63 @@ export const shopsAPI = {
         totalPaidAmount: 0,
         ...data,
       };
-      const updated = [newShop, ...list];
-      setStorage('shops', updated);
-      return { success: true, data: newShop };
+      setStorage('shops', [newShop, ...list]);
+      return { success: true, isFallback: true, message: 'Server offline. Shop created locally.', data: newShop };
     }
   },
-  update: async (id: string, data: Partial<Shop>) => {
+  update: async (id: string, data: Partial<Shop>): Promise<ApiResponse> => {
     try {
       const res = await api.put(`/shops/${id}`, data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('shops', []);
       const updated = list.map((s) => (s._id === id || s.shopCode === id ? { ...s, ...data } : s));
       setStorage('shops', updated);
-      return { success: true, data: { _id: id, ...data } };
+      return { success: true, isFallback: true, message: 'Server offline. Shop updated locally.', data: { _id: id, ...data } };
+    }
+  },
+  delete: async (id: string): Promise<ApiResponse> => {
+    try {
+      const res = await api.delete(`/shops/${id}`);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      const list = getStorage<any[]>('shops', []);
+      const updated = list.filter((s) => s._id !== id && s.shopCode !== id);
+      setStorage('shops', updated);
+      return { success: true, isFallback: true, message: 'Server offline. Shop deleted locally.' };
     }
   },
 };
 
 export const deliveriesAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/deliveries');
       return res.data;
-    } catch {
-      return { success: true, data: getStorage('deliveries', []) };
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: true, isFallback: true, message: errInfo.message, data: getStorage('deliveries', []) };
     }
   },
-  create: async (data: any) => {
+  create: async (data: any): Promise<ApiResponse> => {
     try {
       const res = await api.post('/deliveries', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const deliveries = getStorage<any[]>('deliveries', []);
       const shops = getStorage<any[]>('shops', []);
-
       const shop = shops.find((s) => s._id === data.shopId || s.shopCode === data.shopId);
       const qty = data.items?.reduce((acc: number, i: any) => acc + Number(i.quantity || 0), 0) || 0;
       const amount = data.items?.reduce((acc: number, i: any) => acc + Number(i.amount || 0), 0) || 0;
@@ -477,7 +558,6 @@ export const deliveriesAPI = {
         paymentStatus: paid >= amount ? 'paid' : paid > 0 ? 'partial' : 'unpaid',
       };
 
-      // Update shop stats in localStorage
       if (shop) {
         shop.totalDeliveredQuantity = (shop.totalDeliveredQuantity || 0) + qty;
         shop.totalDeliveredValue = (shop.totalDeliveredValue || 0) + amount;
@@ -487,22 +567,24 @@ export const deliveriesAPI = {
         setStorage('shops', shops);
       }
 
-      const updatedDeliveries = [newDelivery, ...deliveries];
-      setStorage('deliveries', updatedDeliveries);
-      return { success: true, data: newDelivery };
+      setStorage('deliveries', [newDelivery, ...deliveries]);
+      return { success: true, isFallback: true, message: 'Server offline. Dispatch recorded locally.', data: newDelivery };
     }
   },
 };
 
 export const returnsAPI = {
-  create: async (data: any) => {
+  create: async (data: any): Promise<ApiResponse> => {
     try {
       const res = await api.post('/returns', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const returns = getStorage<any[]>('returns', []);
       const shops = getStorage<any[]>('shops', []);
-
       const shop = shops.find((s) => s._id === data.shopId || s.shopCode === data.shopId);
       const qty = data.items?.reduce((acc: number, i: any) => acc + Number(i.quantity || 0), 0) || 0;
 
@@ -519,40 +601,47 @@ export const returnsAPI = {
       };
 
       setStorage('returns', [newReturn, ...returns]);
-      return { success: true, data: newReturn };
+      return { success: true, isFallback: true, message: 'Server offline. Return recorded locally.', data: newReturn };
     }
   },
-  getAll: async (shopId?: string) => {
+  getAll: async (shopId?: string): Promise<ApiResponse> => {
     try {
       const res = await api.get('/returns', { params: { shopId } });
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       const returns = getStorage<any[]>('returns', []);
-      if (shopId) {
-        return { success: true, data: returns.filter((r) => r.shopId === shopId) };
-      }
-      return { success: true, data: returns };
+      return {
+        success: true,
+        isFallback: true,
+        message: errInfo.message,
+        data: shopId ? returns.filter((r) => r.shopId === shopId) : returns,
+      };
     }
   },
 };
 
 export const paymentsAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/payments');
       return res.data;
-    } catch {
-      return { success: true, data: getStorage('payments', []) };
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: true, isFallback: true, message: errInfo.message, data: getStorage('payments', []) };
     }
   },
-  create: async (data: any) => {
+  create: async (data: any): Promise<ApiResponse> => {
     try {
       const res = await api.post('/payments', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const payments = getStorage<any[]>('payments', []);
       const shops = getStorage<any[]>('shops', []);
-
       const shop = shops.find((s) => s._id === data.shopId || s.shopCode === data.shopId);
       const paid = Number(data.amountPaid || 0);
 
@@ -569,19 +658,22 @@ export const paymentsAPI = {
       };
 
       setStorage('payments', [newPayment, ...payments]);
-      return { success: true, data: newPayment };
+      return { success: true, isFallback: true, message: 'Server offline. Payment recorded locally.', data: newPayment };
     }
   },
 };
 
 export const productionAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/production');
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: getStorage('production', [
           {
             _id: 'PROD-101',
@@ -596,11 +688,15 @@ export const productionAPI = {
       };
     }
   },
-  create: async (data: any) => {
+  create: async (data: any): Promise<ApiResponse> => {
     try {
       const res = await api.post('/production', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('production', []);
       const newBatch = {
         _id: `PROD-${101 + list.length}`,
@@ -608,19 +704,22 @@ export const productionAPI = {
         ...data,
       };
       setStorage('production', [newBatch, ...list]);
-      return { success: true, data: newBatch };
+      return { success: true, isFallback: true, message: 'Server offline. Production batch saved locally.', data: newBatch };
     }
   },
 };
 
 export const inventoryAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/inventory');
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: getStorage('inventory', [
           { _id: 'INV-101', sproutType: 'Moong Sprouts', currentStock: 120, unitPrice: 25 },
           { _id: 'INV-102', sproutType: 'Chana Sprouts', currentStock: 80, unitPrice: 20 },
@@ -632,36 +731,42 @@ export const inventoryAPI = {
 };
 
 export const expensesAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/expenses');
       return res.data;
-    } catch {
-      return { success: true, data: getStorage('expenses', []) };
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: true, isFallback: true, message: errInfo.message, data: getStorage('expenses', []) };
     }
   },
-  create: async (data: any) => {
+  create: async (data: any): Promise<ApiResponse> => {
     try {
       const res = await api.post('/expenses', data);
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
       const list = getStorage<any[]>('expenses', []);
       const newExp = {
         _id: `EXP-${101 + list.length}`,
         ...data,
       };
       setStorage('expenses', [newExp, ...list]);
-      return { success: true, data: newExp };
+      return { success: true, isFallback: true, message: 'Server offline. Expense logged locally.', data: newExp };
     }
   },
 };
 
 export const reportsAPI = {
-  getReports: async () => {
+  getReports: async (): Promise<ApiResponse> => {
     try {
       const res = await api.get('/reports');
       return res.data;
-    } catch {
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
       const shops = getStorage<any[]>('shops', []);
       const expenses = getStorage<any[]>('expenses', []);
 
@@ -670,6 +775,8 @@ export const reportsAPI = {
 
       return {
         success: true,
+        isFallback: true,
+        message: errInfo.message,
         data: {
           summary: {
             totalRevenue,

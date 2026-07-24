@@ -5,10 +5,12 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { shopsAPI } from '@/services/api';
 import { Shop } from '@/types';
-import { Store, Plus, Search, MapPin, Eye, Check, X, Filter, Edit2, Upload, Trash2 } from 'lucide-react';
+import { Store, Plus, Search, MapPin, Eye, Check, X, Filter, Edit2, Upload, Trash2, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { compressImageToMaxKb } from '@/utils/imageCompressor';
 
 const shopSchema = z.object({
   shopName: z.string().min(2, 'Shop Name required'),
@@ -46,21 +48,20 @@ export default function ShopCardsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const watchImage = watch('image');
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Photo size exceeds 5MB limit.');
-      return;
+    try {
+      const { base64, sizeKb } = await compressImageToMaxKb(file, 100);
+      setValue('image', base64);
+      showSuccess(`Photo compressed to ${sizeKb}KB and attached!`);
+    } catch (err: any) {
+      showError(err.message || 'Error compressing shop photo.');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setValue('image', base64String);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleRemoveImage = () => {
@@ -70,13 +71,23 @@ export default function ShopCardsPage() {
     }
   };
 
+  const { showSuccess, showError, showWarning } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadShops = async () => {
     setLoading(true);
     try {
       const res = await shopsAPI.getAll();
-      if (res.success) setShops(res.data || []);
-    } catch (err) {
-      console.error(err);
+      if (res.success) {
+        setShops(res.data || []);
+        if (res.isFallback) {
+          showWarning(res.message || 'Server offline. Showing cached shop partners.');
+        }
+      } else {
+        showError(res.message || 'Failed to load retail shops.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Unexpected error loading retail shops.');
     } finally {
       setLoading(false);
     }
@@ -111,26 +122,57 @@ export default function ShopCardsPage() {
   };
 
   const onSubmit = async (data: ShopFormData) => {
+    setIsSubmitting(true);
     try {
       if (editingShop) {
         const res = await shopsAPI.update(editingShop._id, data);
         if (res.success) {
-          setToast(`Updated ${data.shopName}`);
+          if (res.isFallback) {
+            showWarning(res.message || `Updated ${data.shopName} locally.`);
+          } else {
+            showSuccess(`Updated ${data.shopName} successfully!`);
+          }
           setModalOpen(false);
           setEditingShop(null);
           loadShops();
+        } else {
+          showError(res.message || 'Failed to update shop details.');
         }
       } else {
         const res = await shopsAPI.create(data);
         if (res.success) {
-          setToast(`Registered ${data.shopName}`);
+          if (res.isFallback) {
+            showWarning(res.message || `Registered ${data.shopName} locally.`);
+          } else {
+            showSuccess(`Registered ${data.shopName} successfully!`);
+          }
           setModalOpen(false);
           reset();
           loadShops();
+        } else {
+          showError(res.message || 'Failed to register shop partner.');
         }
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'An unexpected error occurred while saving.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteShop = async (id: string, shopName: string) => {
+    if (!window.confirm(`Are you sure you want to delete retail partner "${shopName}"?`)) return;
+    try {
+      const res = await shopsAPI.delete(id);
+      if (res.success) {
+        if (res.isFallback) showWarning(res.message || `Deleted ${shopName} locally.`);
+        else showSuccess(`Deleted ${shopName} retail partner.`);
+        loadShops();
+      } else {
+        showError(res.message || 'Failed to delete shop partner.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Error deleting shop partner.');
     }
   };
 
@@ -239,13 +281,22 @@ export default function ShopCardsPage() {
                         </span>
                         <h3 className="font-bold text-white text-xs truncate">{shop.shopName}</h3>
                       </div>
-                      <button
-                        onClick={() => openEditModal(shop)}
-                        className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-all shrink-0"
-                        title="Edit Shop Details"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => openEditModal(shop)}
+                          className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-all"
+                          title="Edit Shop Details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteShop(shop._id, shop.shopName)}
+                          className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-all"
+                          title="Delete Shop Partner"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
                       <MapPin className="w-3 h-3 shrink-0" /> {shop.area || shop.address || 'Market'}
@@ -274,7 +325,7 @@ export default function ShopCardsPage() {
                 </div>
 
                 <Link
-                  href={`/dashboard/shops/${shop.shopCode || 'SHOP-101'}?id=${shop._id}`}
+                  href={`/dashboard/shops/details?id=${shop._id || shop.shopCode}`}
                   className="w-full bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Eye className="w-3.5 h-3.5 text-emerald-400" />
@@ -403,7 +454,7 @@ export default function ShopCardsPage() {
                           Click to upload shop photo
                         </p>
                         <p className="text-[9px] text-slate-400 mt-0.5">
-                          PNG, JPG, WEBP up to 5MB
+                          PNG, JPG, WEBP (Auto-compressed to max 100KB)
                         </p>
                       </div>
                     </div>
@@ -420,8 +471,10 @@ export default function ShopCardsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md shadow-emerald-900/40"
+                    disabled={isSubmitting}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold shadow-md shadow-emerald-900/40 flex items-center gap-1.5"
                   >
+                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {editingShop ? 'Update Partner' : 'Save Partner'}
                   </button>
                 </div>
