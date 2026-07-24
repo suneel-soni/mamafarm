@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 import Delivery from '@/models/Delivery';
 import Shop from '@/models/Shop';
 import Inventory from '@/models/Inventory';

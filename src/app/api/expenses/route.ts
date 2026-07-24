@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 import { connectToDatabase } from '@/lib/db';
 import Expense from '@/models/Expense';
 import ActivityLog from '@/models/ActivityLog';

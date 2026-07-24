@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 import Material from '@/models/Material';
 import { successResponse, errorResponse } from '@/helpers/response';
 
