@@ -1,7 +1,14 @@
 import axios from 'axios';
 import { Material, Supplier, Shop } from '../types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getBaseApiUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  return 'http://127.0.0.1:5000/api';
+};
+
+const API_URL = getBaseApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,

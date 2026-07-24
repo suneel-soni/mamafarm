@@ -35,6 +35,8 @@ jobs:
         run: npm ci || npm install
 
       - name: Build Next.js Static Export
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.mamafarm.in/api' }}
         run: npm run build
 
       - name: Upload artifact

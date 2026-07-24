@@ -11,9 +11,9 @@ const startServer = async () => {
     await seedData();
   }
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`MamaFarm Backend Server running on port ${PORT}`);
-    console.log(`API Base URL: http://localhost:${PORT}/api`);
+    console.log(`API Base URL: http://127.0.0.1:${PORT}/api`);
   });
 };
 
