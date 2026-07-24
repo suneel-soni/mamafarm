@@ -246,7 +246,7 @@ export default function ShopCardsPage() {
                 </div>
 
                 <Link
-                  href={`/dashboard/shops/${shop._id}`}
+                  href={`/dashboard/shops/${shop.shopCode || 'SHOP-101'}?id=${shop._id}`}
                   className="w-full bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Eye className="w-3.5 h-3.5 text-emerald-400" />

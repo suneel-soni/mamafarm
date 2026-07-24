@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { shopsAPI, deliveriesAPI, returnsAPI } from '@/services/api';
 import {
@@ -18,8 +18,9 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 
 export default function ShopDetailsClient() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const shopId = (params?.id as string) || '';
+  const shopId = (searchParams?.get('id') as string) || (params?.id as string) || '';
 
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);

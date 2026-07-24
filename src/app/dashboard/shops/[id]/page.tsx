@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ShopDetailsClient from './ShopDetailsClient';
 
 export async function generateStaticParams() {
@@ -6,5 +6,9 @@ export async function generateStaticParams() {
 }
 
 export default function ShopDetailsPage() {
-  return <ShopDetailsClient />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400 text-xs">Loading shop details...</div>}>
+      <ShopDetailsClient />
+    </Suspense>
+  );
 }
