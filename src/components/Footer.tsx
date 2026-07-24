@@ -8,7 +8,7 @@ const Footer = () => {
 			<div className='w-full text-center'>
 				{/* Logo */}
 				<Link href='/' className='inline-block mb-3'>
-					<Image src='/images/mamafarm-logo-light.png' alt='Mamafarm Sprouts' width={160} height={60} className='mx-auto h-7 w-auto' />
+					<Image src='/logo.png' alt='Mamafarm Sprouts' width={160} height={60} className='mx-auto h-7 w-auto' />
 				</Link>
 
 				{/* Tagline */}
@@ -47,7 +47,7 @@ const Footer = () => {
 
 				{/* Copyright */}
 				<div className='space-y-1'>
-					<p className='text-[10px] text-slate-500'>© {new Date().getFullYear()} Mamafarm Sprouts. All rights reserved.</p>
+					<p className='text-[10px] text-slate-500'>© {new Date().getFullYear()} mamafarm. All rights reserved.</p>
 					<p className='text-[9px] uppercase tracking-widest text-emerald-500/70 font-mono'>Pure Ingredients • True Goodness</p>
 				</div>
 			</div>

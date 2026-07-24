@@ -101,3 +101,16 @@ export async function POST(req: NextRequest) {
     return errorResponse(error.message || 'Failed to record delivery', 500);
   }
 }
+
+export async function DELETE() {
+  try {
+    await connectToDatabase();
+    const result = await Delivery.deleteMany({});
+    return successResponse(
+      { deletedCount: result.deletedCount },
+      `Successfully deleted ${result.deletedCount} delivery records from database`
+    );
+  } catch (error: any) {
+    return errorResponse(error.message || 'Failed to delete delivery records', 500);
+  }
+}

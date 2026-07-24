@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { deliveriesAPI, shopsAPI } from '@/services/api';
 import { Delivery, Shop } from '@/types';
-import { Truck, Plus, FileText, Check, X, Printer, IndianRupee, Store, Loader2 } from 'lucide-react';
+import { Truck, Plus, FileText, Check, X, Printer, IndianRupee, Store, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 
 export default function DeliveriesPage() {
@@ -66,6 +66,21 @@ export default function DeliveriesPage() {
 
   const subTotal = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
   const netAmount = Math.max(0, subTotal - Number(discount || 0));
+
+  const handleDeleteDelivery = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this delivery dispatch record?')) return;
+    try {
+      const res = await deliveriesAPI.delete(id);
+      if (res.success) {
+        showSuccess('Delivery record deleted successfully.');
+        loadData();
+      } else {
+        showError(res.message || 'Failed to delete delivery.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'An error occurred while deleting delivery.');
+    }
+  };
 
   const handleCreateDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +159,7 @@ export default function DeliveriesPage() {
                   <th className="p-4">Net Amount</th>
                   <th className="p-4">Paid</th>
                   <th className="p-4">Status</th>
-                  <th className="p-4">Invoice</th>
+                  <th className="p-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-emerald-900/20">
@@ -186,13 +201,20 @@ export default function DeliveriesPage() {
                           {del.paymentStatus}
                         </span>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 flex items-center gap-2">
                         <button
                           onClick={() => setInvoiceModalDelivery(del)}
                           className="bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800/50 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                         >
                           <FileText className="w-3.5 h-3.5" />
-                          <span>View Invoice</span>
+                          <span>Invoice</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDelivery(del._id)}
+                          title="Delete Delivery Dispatch"
+                          className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-900/50 rounded-lg border border-rose-900/30 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>

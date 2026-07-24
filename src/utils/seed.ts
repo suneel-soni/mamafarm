@@ -151,40 +151,7 @@ export const seedData = async () => {
       totalPaidAmount: 15600,
     });
 
-    // 7. Deliveries
-    await Delivery.create({
-      deliveryNumber: 'DEL-2026-001',
-      shop: shop1._id,
-      shopName: shop1.shopName,
-      deliveryDate: new Date(Date.now() - 86400000 * 2),
-      items: [
-        { sproutType: 'Moong Sprouts', quantity: 50, unit: 'packets', rate: 25, amount: 1250 },
-        { sproutType: 'Chana Sprouts', quantity: 30, unit: 'packets', rate: 20, amount: 600 },
-      ],
-      subTotal: 1850,
-      discount: 50,
-      netAmount: 1800,
-      amountPaid: 0,
-      paymentStatus: 'unpaid',
-      deliveryPerson: 'Raju (Driver)',
-    });
-
-    await Delivery.create({
-      deliveryNumber: 'DEL-2026-002',
-      shop: shop2._id,
-      shopName: shop2.shopName,
-      deliveryDate: new Date(Date.now() - 86400000),
-      items: [
-        { sproutType: 'Moong Sprouts', quantity: 80, unit: 'packets', rate: 25, amount: 2000 },
-        { sproutType: 'Mixed Sprouts', quantity: 40, unit: 'packets', rate: 30, amount: 1200 },
-      ],
-      subTotal: 3200,
-      discount: 0,
-      netAmount: 3200,
-      amountPaid: 0,
-      paymentStatus: 'unpaid',
-      deliveryPerson: 'Raju (Driver)',
-    });
+    // 7. Deliveries (mock deliveries removed)
 
     // 8. Activity Log
     await ActivityLog.create([

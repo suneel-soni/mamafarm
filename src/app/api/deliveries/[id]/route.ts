@@ -44,3 +44,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return errorResponse(error.message || 'Failed to update delivery', 500);
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    await connectToDatabase();
+
+    const delivery = await Delivery.findByIdAndDelete(id);
+    if (!delivery) return errorResponse('Delivery not found', 404);
+
+    return successResponse(null, 'Delivery deleted successfully');
+  } catch (error: any) {
+    return errorResponse(error.message || 'Failed to delete delivery', 500);
+  }
+}

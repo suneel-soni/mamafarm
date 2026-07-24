@@ -135,19 +135,7 @@ const initSeedData = () => {
   }
 
   if (!localStorage.getItem('mamafarm_deliveries')) {
-    setStorage('deliveries', [
-      {
-        _id: 'DEL-101',
-        deliveryNumber: 'DEL-2026-001',
-        shopId: '6a6318e02d2a89cee171ce4d',
-        shopName: 'Fresh Veggies Mart',
-        deliveryDate: new Date().toISOString(),
-        items: [{ sproutType: 'Moong Sprouts', quantity: 50, rate: 25, amount: 1250 }],
-        netAmount: 1250,
-        amountPaid: 0,
-        paymentStatus: 'unpaid',
-      },
-    ]);
+    setStorage('deliveries', []);
   }
 
   if (!localStorage.getItem('mamafarm_materials')) {
@@ -579,6 +567,35 @@ export const deliveriesAPI = {
 
       setStorage('deliveries', [newDelivery, ...deliveries]);
       return { success: true, isFallback: true, message: 'Server offline. Dispatch recorded locally.', data: newDelivery };
+    }
+  },
+  delete: async (id: string): Promise<ApiResponse> => {
+    try {
+      const res = await api.delete(`/deliveries/${id}`);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      const list = getStorage<any[]>('deliveries', []);
+      const updated = list.filter((d) => d._id !== id);
+      setStorage('deliveries', updated);
+      return { success: true, isFallback: true, message: 'Server offline. Delivery deleted locally.' };
+    }
+  },
+  deleteAll: async (): Promise<ApiResponse> => {
+    try {
+      const res = await api.delete('/deliveries');
+      setStorage('deliveries', []);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      setStorage('deliveries', []);
+      return { success: true, isFallback: true, message: 'Server offline. Deliveries cleared locally.' };
     }
   },
 };
