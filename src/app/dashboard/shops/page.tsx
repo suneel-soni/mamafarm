@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { shopsAPI } from '@/services/api';
 import { Shop } from '@/types';
-import { Store, Plus, Search, MapPin, Eye, Check, X, Filter, Edit2 } from 'lucide-react';
+import { Store, Plus, Search, MapPin, Eye, Check, X, Filter, Edit2, Upload, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,10 +37,38 @@ export default function ShopCardsPage() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ShopFormData>({
     resolver: zodResolver(shopSchema),
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const watchImage = watch('image');
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo size exceeds 5MB limit.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setValue('image', base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setValue('image', '');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const loadShops = async () => {
     setLoading(true);
@@ -320,12 +348,66 @@ export default function ShopCardsPage() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 block mb-1">Shop Photo URL (Optional)</label>
+                  <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                    Shop Photo
+                  </label>
                   <input
-                    {...register('image')}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white text-[10px]"
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
                   />
+
+                  {watchImage ? (
+                    <div className="relative flex items-center gap-3 p-2 bg-slate-800/80 border border-emerald-900/40 rounded-xl">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-900 shrink-0 border border-emerald-900/50">
+                        <img
+                          src={watchImage}
+                          alt="Shop Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 min-w-0">
+                        <p className="text-[11px] font-semibold text-emerald-400 truncate">
+                          Photo Selected
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-[10px] bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/50 px-2 py-1 rounded-md font-medium transition-all"
+                          >
+                            Change Photo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="text-[10px] bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 px-2 py-1 rounded-md font-medium transition-all flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" /> Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-emerald-900/50 hover:border-emerald-500/60 bg-slate-800/50 hover:bg-slate-800/80 rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-emerald-950/60 border border-emerald-800/40 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-slate-200 group-hover:text-emerald-300">
+                          Click to upload shop photo
+                        </p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">
+                          PNG, JPG, WEBP up to 5MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-emerald-900/40">

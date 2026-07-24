@@ -109,7 +109,7 @@ const initSeedData = () => {
         shopId: '6a6318e02d2a89cee171ce4d',
         shopName: 'Fresh Veggies Mart',
         deliveryDate: new Date().toISOString(),
-        items: [{ sproutType: 'Moong Sprouts (200g)', quantity: 50, rate: 25, amount: 1250 }],
+        items: [{ sproutType: 'Moong Sprouts', quantity: 50, rate: 25, amount: 1250 }],
         netAmount: 1250,
         amountPaid: 0,
         paymentStatus: 'unpaid',
@@ -160,7 +160,7 @@ const initSeedData = () => {
     setStorage('expenses', [
       {
         _id: 'EXP-101',
-        title: 'Packaging Pouches (200g)',
+        title: 'Packaging Pouches',
         category: 'Packaging',
         amount: 2500,
         expenseDate: new Date().toISOString(),
@@ -177,11 +177,13 @@ export const authAPI = {
     try {
       const res = await api.post('/auth/login', { mobile, password });
       return res.data;
-    } catch {
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
       return {
-        success: true,
-        token: 'fallback_token_123',
-        data: { name: 'MamaFarm Owner', role: 'admin', mobile },
+        success: false,
+        message: 'Invalid mobile number or password',
       };
     }
   },
@@ -189,8 +191,11 @@ export const authAPI = {
     try {
       const res = await api.get('/auth/me');
       return res.data;
-    } catch {
-      return { success: true, data: { name: 'MamaFarm Owner', role: 'admin' } };
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { success: false, message: 'Unauthenticated session' };
     }
   },
 };
@@ -617,9 +622,9 @@ export const inventoryAPI = {
       return {
         success: true,
         data: getStorage('inventory', [
-          { _id: 'INV-101', sproutType: 'Moong Sprouts (200g)', currentStock: 120, unitPrice: 25 },
-          { _id: 'INV-102', sproutType: 'Chana Sprouts (200g)', currentStock: 80, unitPrice: 20 },
-          { _id: 'INV-103', sproutType: 'Mixed Sprouts (200g)', currentStock: 60, unitPrice: 30 },
+          { _id: 'INV-101', sproutType: 'Moong Sprouts', currentStock: 120, unitPrice: 25 },
+          { _id: 'INV-102', sproutType: 'Chana Sprouts', currentStock: 80, unitPrice: 20 },
+          { _id: 'INV-103', sproutType: 'Mixed Sprouts', currentStock: 60, unitPrice: 30 },
         ]),
       };
     }

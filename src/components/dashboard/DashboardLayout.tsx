@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { authAPI } from '@/services/api';
 import {
   TrendingUp,
   Store,
@@ -29,6 +30,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      if (typeof window === 'undefined') return;
+      const token = localStorage.getItem('mamafarm_token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const res = await authAPI.getMe();
+        if (!res || !res.success) {
+          localStorage.removeItem('mamafarm_token');
+          router.push('/login');
+          return;
+        }
+        setIsCheckingAuth(false);
+      } catch {
+        localStorage.removeItem('mamafarm_token');
+        router.push('/login');
+      }
+    }
+    checkAuth();
+  }, [router]);
 
   const bottomTabs = [
     { label: 'Sales', href: '/dashboard/sales', icon: TrendingUp },
@@ -47,6 +74,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const currentTab = bottomTabs.find((t) => t.href === pathname) || {
     label: 'MamaFarm Mobile Tracker',
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[#11180d] text-slate-100 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#8B7E2A] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs text-slate-400 font-medium">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#11180d] text-slate-100 flex justify-center selection:bg-[#283C06] selection:text-[#F4EDD6] antialiased">

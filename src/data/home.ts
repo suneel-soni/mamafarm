@@ -37,19 +37,19 @@ export const whyChooseData: FeatureCard[] = [
 export const ingredientsData: Ingredient[] = [
 	{
 		id: 'moong',
-		name: 'Moong Sprouts (200g)',
+		name: 'Moong Sprouts',
 		image: '/images/moong-sprouts.jpg',
 		description: 'Crisp, fresh whole green gram sprouts. High in plant protein, light on stomach, and easy to digest.',
 	},
 	{
 		id: 'chana',
-		name: 'Chana Sprouts (200g)',
+		name: 'Chana Sprouts',
 		image: '/images/chana-sprouts.jpg',
 		description: 'Nutritious brown chickpea sprouts offering a nutty crunch, loaded with fiber and sustained energy.',
 	},
 	{
 		id: 'mixed',
-		name: 'Mixed Sprouts (200g)',
+		name: 'Mixed Sprouts',
 		image: '/images/mixed-sprouts.jpg',
 		description: 'A wholesome power blend of Moong, Chana, and legumes for balanced nutrients and delicious texture.',
 	},
@@ -195,7 +195,7 @@ export const faqData: FaqItem[] = [
 	{
 		id: 'faq-2',
 		question: 'What varieties of sprouts are available?',
-		answer: 'We currently offer Moong Sprouts (200g), Chana Sprouts (200g), and Mixed Sprouts (200g) packed in convenient food-grade pouches.',
+		answer: 'We currently offer Moong Sprouts, Chana Sprouts, and Mixed Sprouts packed in convenient food-grade pouches.',
 	},
 	{
 		id: 'faq-3',

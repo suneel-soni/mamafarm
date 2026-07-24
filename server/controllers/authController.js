@@ -67,7 +67,7 @@ exports.login = async (req, res) => {
 
     if (!user) {
       // Direct hardcoded fallback for requested single owner credential
-      if ((cleanDigits === '8130188878' || inputStr.includes('8130188878')) && password === 'suraj7264') {
+      if ((cleanDigits === '8130188878' || inputStr.includes('8130188878')) && password === 'Suraj@7264') {
         const token = jwt.sign({ id: 'user_8130188878', phone: '8130188878', role: 'admin' }, JWT_SECRET, { expiresIn: '30d' });
         return res.json({
           success: true,
@@ -86,7 +86,7 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       // Fallback check for specified password
-      if ((user.phone === '8130188878' || cleanDigits === '8130188878') && password === 'suraj7264') {
+      if ((user.phone === '8130188878' || cleanDigits === '8130188878') && password === 'Suraj@7264') {
         const token = jwt.sign({ id: user._id, phone: user.phone, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
         return res.json({
           success: true,
@@ -116,12 +116,18 @@ exports.login = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    let user;
+    if (req.user.id && req.user.id !== 'user_8130188878') {
+      user = await User.findById(req.user.id).select('-password');
+    }
     if (!user) {
-      return res.json({
-        success: true,
-        data: { id: 'user_8130188878', name: 'MamaFarm Owner', phone: '8130188878', role: 'admin' },
-      });
+      if (req.user.id === 'user_8130188878' || req.user.phone === '8130188878') {
+        return res.json({
+          success: true,
+          data: { id: 'user_8130188878', name: 'MamaFarm Owner', phone: '8130188878', role: 'admin' },
+        });
+      }
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
     res.json({ success: true, data: user });
   } catch (error) {

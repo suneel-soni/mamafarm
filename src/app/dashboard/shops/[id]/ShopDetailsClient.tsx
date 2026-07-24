@@ -31,12 +31,12 @@ export default function ShopDetailsClient() {
   const [toast, setToast] = useState<string | null>(null);
 
   // Form State
-  const [sproutType, setSproutType] = useState('Moong Sprouts (200g)');
+  const [sproutType, setSproutType] = useState('Moong Sprouts');
   const [orderQty, setOrderQty] = useState(50);
   const [orderRate, setOrderQtyRate] = useState(25);
   const [amountPaid, setAmountPaid] = useState(0);
 
-  const [returnSproutType, setReturnSproutType] = useState('Moong Sprouts (200g)');
+  const [returnSproutType, setReturnSproutType] = useState('Moong Sprouts');
   const [returnQty, setReturnQty] = useState(10);
   const [returnRate, setReturnRate] = useState(25);
   const [returnReason, setReturnReason] = useState('Unsold / Expired Return');
@@ -350,9 +350,9 @@ export default function ShopDetailsClient() {
                     onChange={(e) => setSproutType(e.target.value)}
                     className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                   >
-                    <option value="Moong Sprouts (200g)">Moong Sprouts (200g)</option>
-                    <option value="Chana Sprouts (200g)">Chana Sprouts (200g)</option>
-                    <option value="Mixed Sprouts (200g)">Mixed Sprouts (200g)</option>
+                    <option value="Moong Sprouts">Moong Sprouts</option>
+                    <option value="Chana Sprouts">Chana Sprouts</option>
+                    <option value="Mixed Sprouts">Mixed Sprouts</option>
                   </select>
                 </div>
 
@@ -426,9 +426,9 @@ export default function ShopDetailsClient() {
                     onChange={(e) => setReturnSproutType(e.target.value)}
                     className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                   >
-                    <option value="Moong Sprouts (200g)">Moong Sprouts (200g)</option>
-                    <option value="Chana Sprouts (200g)">Chana Sprouts (200g)</option>
-                    <option value="Mixed Sprouts (200g)">Mixed Sprouts (200g)</option>
+                    <option value="Moong Sprouts">Moong Sprouts</option>
+                    <option value="Chana Sprouts">Chana Sprouts</option>
+                    <option value="Mixed Sprouts">Mixed Sprouts</option>
                   </select>
                 </div>
 

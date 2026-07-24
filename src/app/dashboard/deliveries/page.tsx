@@ -20,7 +20,7 @@ export default function DeliveriesPage() {
   const [amountPaid, setAmountPaid] = useState(0);
   const [deliveryPerson, setDeliveryPerson] = useState('Raju (Driver)');
   const [items, setItems] = useState([
-    { sproutType: 'Moong Sprouts (200g)', quantity: 50, rate: 25, unit: 'packets' },
+    { sproutType: 'Moong Sprouts', quantity: 50, rate: 25, unit: 'packets' },
   ]);
 
   const loadData = async () => {
@@ -41,7 +41,7 @@ export default function DeliveriesPage() {
   }, []);
 
   const addItemRow = () => {
-    setItems([...items, { sproutType: 'Chana Sprouts (200g)', quantity: 20, rate: 20, unit: 'packets' }]);
+    setItems([...items, { sproutType: 'Chana Sprouts', quantity: 20, rate: 20, unit: 'packets' }]);
   };
 
   const updateItem = (index: number, field: string, value: any) => {
@@ -249,9 +249,9 @@ export default function DeliveriesPage() {
                         onChange={(e) => updateItem(idx, 'sproutType', e.target.value)}
                         className="flex-1 bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"
                       >
-                        <option value="Moong Sprouts (200g)">Moong Sprouts (200g)</option>
-                        <option value="Chana Sprouts (200g)">Chana Sprouts (200g)</option>
-                        <option value="Mixed Sprouts (200g)">Mixed Sprouts (200g)</option>
+                        <option value="Moong Sprouts">Moong Sprouts</option>
+                        <option value="Chana Sprouts">Chana Sprouts</option>
+                        <option value="Mixed Sprouts">Mixed Sprouts</option>
                       </select>
 
                       <input

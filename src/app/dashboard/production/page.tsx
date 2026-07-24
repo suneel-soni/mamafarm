@@ -227,9 +227,9 @@ export default function ProductionPage() {
                       {...register('sproutType')}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"
                     >
-                      <option value="Moong Sprouts (200g)">Moong Sprouts (200g)</option>
-                      <option value="Chana Sprouts (200g)">Chana Sprouts (200g)</option>
-                      <option value="Mixed Sprouts (200g)">Mixed Sprouts (200g)</option>
+                      <option value="Moong Sprouts">Moong Sprouts</option>
+                      <option value="Chana Sprouts">Chana Sprouts</option>
+                      <option value="Mixed Sprouts">Mixed Sprouts</option>
                     </select>
                   </div>
 

@@ -7,8 +7,8 @@ import { authAPI } from '@/services/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mobile, setMobile] = useState('8130188878');
-  const [password, setPassword] = useState('suraj7264');
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,9 +19,10 @@ export default function LoginPage() {
 
     try {
       const res = await authAPI.login(mobile, password);
-      if (res.success && res.data) {
+      const token = res.data?.token || res.token;
+      if (res.success && token) {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('mamafarm_token', res.data.token || 'jwt_token_8130188878');
+          localStorage.setItem('mamafarm_token', token);
         }
         router.push('/dashboard/sales');
       } else {
@@ -46,10 +47,6 @@ export default function LoginPage() {
             <img src="/logo.png" alt="MamaFarm Origin Logo" className="w-full h-full object-contain" />
           </div>
           <div>
-            <div className="flex items-center justify-center gap-1">
-              <span className="font-black text-xl text-[#283C06] bg-[#F4EDD6] px-2 py-0.5 rounded-lg tracking-tight">Mama</span>
-              <span className="font-black text-xl text-[#8B7E2A] tracking-tight">Farm</span>
-            </div>
             <p className="text-[10px] text-[#8B7E2A] font-semibold italic mt-0.5">Pure Ingredients. True Goodness.</p>
           </div>
         </div>
@@ -89,17 +86,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-          </div>
-
-          {/* User Info Badge */}
-          <div className="bg-[#1e2a16]/80 border border-[#283C06]/60 rounded-xl p-3 text-[11px] text-emerald-300 space-y-1">
-            <div className="flex items-center gap-1.5 font-bold text-[#8B7E2A]">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>Owner Credential Active</span>
-            </div>
-            <p className="text-[10px] text-slate-400 pl-5">
-              Mobile: <span className="font-mono text-[#8B7E2A] font-bold">8130188878</span>
-            </p>
           </div>
 
           {/* CTA Login Button */}

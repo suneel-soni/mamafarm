@@ -15,11 +15,8 @@ const protect = (req, res, next) => {
     }
   }
 
-  // Optional bypass for local development if header has bypass or mock token
   if (!token) {
-    // Default guest admin context for ease of use/demo if unauthenticated
-    req.user = { id: 'admin_demo_id', name: 'MamaFarm Admin', role: 'admin' };
-    return next();
+    return res.status(401).json({ success: false, message: 'Not authorized, no token provided' });
   }
 };
 
