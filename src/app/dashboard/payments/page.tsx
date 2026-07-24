@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { paymentsAPI, shopsAPI, suppliersAPI } from '@/services/api';
 import { Payment, Shop, Supplier } from '@/types';
 import { CreditCard, Plus, Check, X, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { allowOnlyDecimalKeys, sanitizeDecimal } from '@/utils/inputValidation';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -239,9 +240,14 @@ export default function PaymentsPage() {
                   <div>
                     <label className="text-xs font-semibold text-slate-300 mb-1 block">Amount (₹)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={amount}
-                      onChange={(e) => setAmount(Number(e.target.value))}
+                      onKeyDown={allowOnlyDecimalKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeDecimal(e.target.value);
+                        setAmount(clean === '' ? 0 : Number(clean));
+                      }}
                       placeholder="1000"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white font-bold"
                       required

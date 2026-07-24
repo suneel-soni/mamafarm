@@ -171,8 +171,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                   </div>
                   <h3 className="font-bold text-[#FEFEFE] text-sm">
-                    <span className="text-[#283C06] bg-[#F4EDD6] px-1 py-0.5 rounded">Mama</span>
-                    <span className="text-[#8B7E2A] ml-1">Farm</span> Options
+                    Mama Farm Options
                   </h3>
                 </div>
                 <button onClick={() => setMoreMenuOpen(false)} className="text-slate-400 hover:text-white p-1">

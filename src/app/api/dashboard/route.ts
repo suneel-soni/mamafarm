@@ -1,10 +1,12 @@
 import { connectToDatabase } from '@/lib/db';
+export const dynamic = 'force-dynamic';
 import Delivery from '@/models/Delivery';
 import Shop from '@/models/Shop';
 import Supplier from '@/models/Supplier';
 import Material from '@/models/Material';
 import Expense from '@/models/Expense';
 import Inventory from '@/models/Inventory';
+import Production from '@/models/Production';
 import ActivityLog from '@/models/ActivityLog';
 import { successResponse, errorResponse } from '@/helpers/response';
 
@@ -31,6 +33,8 @@ export async function GET() {
     const expenses = await Expense.find();
     const totalOperatingExpense = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
+    const productions = await Production.find();
+
     const netProfit = totalRevenue - totalMaterialCost - totalOperatingExpense;
 
     const inventoryItems = await Inventory.find();
@@ -42,15 +46,39 @@ export async function GET() {
 
     const recentActivities = await ActivityLog.find().sort({ timestamp: -1 }).limit(8);
 
-    const chartData = [
-      { month: 'Jan', revenue: 24000, expense: 12000, production: 1200 },
-      { month: 'Feb', revenue: 32000, expense: 15000, production: 1500 },
-      { month: 'Mar', revenue: 28000, expense: 14000, production: 1400 },
-      { month: 'Apr', revenue: 41000, expense: 18000, production: 1900 },
-      { month: 'May', revenue: 38000, expense: 16500, production: 1750 },
-      { month: 'Jun', revenue: 45000, expense: 19000, production: 2100 },
-      { month: 'Jul', revenue: Math.max(totalRevenue, 36500), expense: totalOperatingExpense, production: 1880 },
-    ];
+    const now = new Date();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = now.getFullYear();
+
+    const chartData = months.map((m, idx) => {
+      const rev = deliveries
+        .filter((d) => {
+          const dt = new Date(d.deliveryDate || d.createdAt);
+          return dt.getMonth() === idx && dt.getFullYear() === currentYear;
+        })
+        .reduce((sum, d) => sum + (d.netAmount || 0), 0);
+
+      const exp = expenses
+        .filter((e) => {
+          const dt = new Date(e.expenseDate || e.createdAt);
+          return dt.getMonth() === idx && dt.getFullYear() === currentYear;
+        })
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+      const prod = productions
+        .filter((p) => {
+          const dt = new Date(p.productionDate || p.createdAt);
+          return dt.getMonth() === idx && dt.getFullYear() === currentYear;
+        })
+        .reduce((sum, p) => sum + (p.batchSize || p.actualQuantity || 0), 0);
+
+      return {
+        month: m,
+        revenue: rev,
+        expense: exp,
+        production: prod,
+      };
+    });
 
     return successResponse({
       kpis: {

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { connectToDatabase } from '@/lib/db';
 import Material from '@/models/Material';
 import Supplier from '@/models/Supplier';

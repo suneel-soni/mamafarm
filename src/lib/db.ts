@@ -1,11 +1,14 @@
 import mongoose from 'mongoose';
 import { seedData } from '../utils/seed';
+import fs from 'fs';
+import path from 'path';
 
 declare global {
   var mongooseCache: {
     conn: typeof mongoose | null;
     promise: Promise<typeof mongoose> | null;
   };
+  var mongodServer: any;
 }
 
 let cached = global.mongooseCache;
@@ -15,8 +18,14 @@ if (!cached) {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose> {
-  if (cached.conn) {
+  if (cached.conn && cached.conn.connection.readyState === 1) {
     return cached.conn;
+  }
+
+  // If connection is disconnected or closing, reset cache
+  if (cached.conn && cached.conn.connection.readyState !== 1) {
+    cached.conn = null;
+    cached.promise = null;
   }
 
   if (!cached.promise) {
@@ -47,14 +56,27 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
         await seedData();
         return instance;
       } catch {
-        console.log('Initializing Embedded In-Memory MongoDB Engine...');
+        console.log('Initializing Persistent Embedded MongoDB Engine...');
         const { MongoMemoryServer } = await import('mongodb-memory-server');
-        const mongod = await MongoMemoryServer.create({
-          instance: { dbName: 'mamafarm' },
-        });
-        const memoryUri = mongod.getUri();
+        
+        const dbPath = path.join(process.cwd(), '.mongo-data');
+        if (!fs.existsSync(dbPath)) {
+          fs.mkdirSync(dbPath, { recursive: true });
+        }
+
+        if (!global.mongodServer) {
+          global.mongodServer = await MongoMemoryServer.create({
+            instance: {
+              dbName: 'mamafarm',
+              dbPath,
+              storageEngine: 'wiredTiger',
+            },
+          });
+        }
+
+        const memoryUri = global.mongodServer.getUri();
         const instance = await mongoose.connect(memoryUri);
-        console.log(`Embedded MongoDB Connected: ${instance.connection.host}`);
+        console.log(`Embedded Persistent MongoDB Connected at: ${dbPath}`);
         await seedData();
         return instance;
       }

@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-static';
+export function generateStaticParams() { return [{ id: 'stub' }]; }
 import { connectToDatabase } from '@/lib/db';
 import Supplier from '@/models/Supplier';
 import Material from '@/models/Material';

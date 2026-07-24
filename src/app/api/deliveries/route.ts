@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 import Delivery from '@/models/Delivery';
 import Shop from '@/models/Shop';
 import Inventory from '@/models/Inventory';
 import ActivityLog from '@/models/ActivityLog';
+import Payment from '@/models/Payment';
 import { successResponse, errorResponse } from '@/helpers/response';
 
 export async function GET() {
@@ -71,6 +74,21 @@ export async function POST(req: NextRequest) {
       deliveryPerson: deliveryPerson || 'Self',
       notes,
     });
+
+    if (paid > 0) {
+      const payCount = await Payment.countDocuments();
+      const paymentNumber = `PAY-2026-${String(payCount + 1).padStart(3, '0')}`;
+      await Payment.create({
+        paymentNumber,
+        entityType: 'shop',
+        shop: shopId,
+        partyName: shop.shopName,
+        amount: paid,
+        paymentMethod: 'cash',
+        paymentDate: dispatchDate,
+        notes: `Cash collected at order dispatch (${deliveryNumber})`,
+      });
+    }
 
     await Shop.findByIdAndUpdate(shopId, {
       $inc: {

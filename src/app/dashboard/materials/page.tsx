@@ -6,6 +6,7 @@ import { materialsAPI, suppliersAPI } from '@/services/api';
 import { MaterialGroupedSummary, Supplier } from '@/types';
 import { Wheat, Plus, Calendar, Filter, X, Check, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { allowOnlyNumbersKeys, allowOnlyDecimalKeys } from '@/utils/inputValidation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -354,7 +355,9 @@ export default function MaterialSummaryPage() {
                   <div>
                     <label className="text-[10px] font-semibold text-slate-300 block mb-1">Qty</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      onKeyDown={allowOnlyDecimalKeys}
                       {...register('quantity', { valueAsNumber: true })}
                       placeholder="100"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
@@ -371,7 +374,9 @@ export default function MaterialSummaryPage() {
                   <div>
                     <label className="text-[10px] font-semibold text-slate-300 block mb-1">Price (₹)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      onKeyDown={allowOnlyDecimalKeys}
                       {...register('purchasePrice', { valueAsNumber: true })}
                       placeholder="90"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"

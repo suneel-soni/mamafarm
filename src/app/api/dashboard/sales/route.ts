@@ -1,4 +1,5 @@
 import { connectToDatabase } from '@/lib/db';
+export const dynamic = 'force-dynamic';
 import Delivery from '@/models/Delivery';
 import Shop from '@/models/Shop';
 import Payment from '@/models/Payment';
@@ -67,19 +68,27 @@ export async function GET() {
 
     const payments = await Payment.find({ entityType: 'shop' });
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = now.getFullYear();
+
     const monthlyGraph = months.map((m, idx) => {
       const salesInMonth = deliveries
-        .filter((d) => new Date(d.deliveryDate).getMonth() === idx)
-        .reduce((sum, d) => sum + d.netAmount, 0);
+        .filter((d) => {
+          const dt = new Date(d.deliveryDate);
+          return dt.getMonth() === idx && dt.getFullYear() === currentYear;
+        })
+        .reduce((sum, d) => sum + (d.netAmount || 0), 0);
 
       const collectionsInMonth = payments
-        .filter((p) => new Date(p.paymentDate).getMonth() === idx)
-        .reduce((sum, p) => sum + p.amount, 0);
+        .filter((p) => {
+          const dt = new Date(p.paymentDate);
+          return dt.getMonth() === idx && dt.getFullYear() === currentYear;
+        })
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
 
       return {
         month: m,
-        sales: salesInMonth || (idx <= now.getMonth() ? 25000 + idx * 3000 : 0),
-        collections: collectionsInMonth || (idx <= now.getMonth() ? 20000 + idx * 2800 : 0),
+        sales: salesInMonth,
+        collections: collectionsInMonth,
       };
     });
 

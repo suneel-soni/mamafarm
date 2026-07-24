@@ -6,6 +6,7 @@ import { deliveriesAPI, shopsAPI } from '@/services/api';
 import { Delivery, Shop } from '@/types';
 import { Truck, Plus, FileText, Check, X, Printer, IndianRupee, Store, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { allowOnlyNumbersKeys, allowOnlyDecimalKeys, sanitizeInteger, sanitizeDecimal } from '@/utils/inputValidation';
 
 export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -294,17 +295,27 @@ export default function DeliveriesPage() {
                       </select>
 
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={item.quantity}
-                        onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
+                        onKeyDown={allowOnlyNumbersKeys}
+                        onChange={(e) => {
+                          const clean = sanitizeInteger(e.target.value);
+                          updateItem(idx, 'quantity', clean === '' ? '' : Number(clean));
+                        }}
                         placeholder="Qty"
                         className="w-20 bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"
                       />
 
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={item.rate}
-                        onChange={(e) => updateItem(idx, 'rate', Number(e.target.value))}
+                        onKeyDown={allowOnlyDecimalKeys}
+                        onChange={(e) => {
+                          const clean = sanitizeDecimal(e.target.value);
+                          updateItem(idx, 'rate', clean === '' ? '' : Number(clean));
+                        }}
                         placeholder="Rate ₹"
                         className="w-20 bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"
                       />
@@ -335,15 +346,39 @@ export default function DeliveriesPage() {
                   <div className="flex justify-between items-center">
                     <span>Discount (₹):</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={discount}
-                      onChange={(e) => setDiscount(Number(e.target.value))}
+                      onKeyDown={allowOnlyDecimalKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeDecimal(e.target.value);
+                        setDiscount(clean === '' ? 0 : Number(clean));
+                      }}
                       className="w-24 bg-slate-900 border border-emerald-900/40 rounded-lg px-2 py-1 text-right text-xs text-white"
                     />
                   </div>
                   <div className="flex justify-between font-bold text-emerald-400 text-sm pt-2 border-t border-emerald-900/40">
                     <span>Net Bill Amount:</span>
                     <span>₹{netAmount}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-emerald-900/20">
+                    <span className="text-emerald-300 font-semibold">Cash Collected Now (₹):</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={amountPaid}
+                      onKeyDown={allowOnlyDecimalKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeDecimal(e.target.value);
+                        setAmountPaid(clean === '' ? 0 : Number(clean));
+                      }}
+                      placeholder="0"
+                      className="w-24 bg-slate-900 border border-emerald-900/40 rounded-lg px-2 py-1 text-right text-xs text-emerald-300 font-bold"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-amber-400 font-semibold">
+                    <span>Remaining Balance Due (₹):</span>
+                    <span>₹{Math.max(0, netAmount - Number(amountPaid || 0))}</span>
                   </div>
                 </div>
 

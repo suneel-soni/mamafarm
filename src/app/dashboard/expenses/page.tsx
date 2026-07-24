@@ -6,6 +6,7 @@ import { expensesAPI } from '@/services/api';
 import { Expense } from '@/types';
 import { Receipt, Plus, Check, X, IndianRupee, PieChart, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { allowOnlyDecimalKeys } from '@/utils/inputValidation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -209,7 +210,9 @@ export default function ExpensesPage() {
                   <div>
                     <label className="text-xs font-semibold text-slate-300 mb-1 block">Amount (₹)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      onKeyDown={allowOnlyDecimalKeys}
                       {...register('amount', { valueAsNumber: true })}
                       placeholder="5000"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white font-bold"

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { shopsAPI, deliveriesAPI, returnsAPI } from '@/services/api';
+import { shopsAPI, deliveriesAPI, returnsAPI, paymentsAPI } from '@/services/api';
 import {
   MapPin,
   Phone,
@@ -14,8 +14,11 @@ import {
   X,
   Check,
   Loader2,
+  Banknote,
+  CreditCard,
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { allowOnlyNumbersKeys, allowOnlyDecimalKeys, sanitizeInteger, sanitizeDecimal } from '@/utils/inputValidation';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export default function ShopDetailsClient() {
@@ -30,21 +33,123 @@ export default function ShopDetailsClient() {
   // Modal States
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   // Form State
   const [sproutType, setSproutType] = useState('Moong Sprouts');
-  const [orderQty, setOrderQty] = useState(50);
-  const [orderRate, setOrderQtyRate] = useState(25);
+  const [orderQty, setOrderQty] = useState(5);
+  const [orderRate, setOrderQtyRate] = useState(20);
   const [amountPaid, setAmountPaid] = useState(0);
 
   const [returnSproutType, setReturnSproutType] = useState('Moong Sprouts');
-  const [returnQty, setReturnQty] = useState(10);
-  const [returnRate, setReturnRate] = useState(25);
+  const [returnQty, setReturnQty] = useState(2);
+  const [returnRate, setReturnRate] = useState(20);
   const [returnReason, setReturnReason] = useState('Unsold / Expired Return');
+
+  // Later Paid Payment State
+  const [selectedDeliveryForPayment, setSelectedDeliveryForPayment] = useState<any | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'bank_transfer' | 'cheque'>('cash');
+  const [transactionRef, setTransactionRef] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
 
   const { showSuccess, showError, showWarning } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const openOrderModal = () => {
+    setSproutType('Moong Sprouts');
+    setOrderQty(5);
+    setOrderQtyRate(20);
+    setAmountPaid(0);
+    setOrderModalOpen(true);
+  };
+
+  const openPaymentModal = (defaultAmt?: number, note?: string) => {
+    setSelectedDeliveryForPayment(null);
+    const due = defaultAmt !== undefined ? defaultAmt : (summary?.pendingPayment || 0);
+    setPaymentAmount(due > 0 ? due : 0);
+    setPaymentNotes(note || '');
+    setTransactionRef('');
+    setPaymentMethod('cash');
+    setPaymentModalOpen(true);
+  };
+
+  const openPaymentModalForDelivery = (entry: any) => {
+    const due = Math.max(0, (entry.debit || 0) - (entry.amountPaid || 0));
+    setSelectedDeliveryForPayment(entry);
+    setPaymentAmount(due > 0 ? due : entry.debit || 0);
+    setPaymentNotes(`Cash collected for dispatch order (${entry.reference})`);
+    setTransactionRef('');
+    setPaymentMethod('cash');
+    setPaymentModalOpen(true);
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (Number(paymentAmount) <= 0) {
+      showError('Please enter a valid payment amount greater than zero.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (selectedDeliveryForPayment && (selectedDeliveryForPayment.id || selectedDeliveryForPayment._id)) {
+        const delId = selectedDeliveryForPayment.id || selectedDeliveryForPayment._id;
+        const newPaid = (selectedDeliveryForPayment.amountPaid || 0) + Number(paymentAmount);
+        const newStatus = newPaid >= selectedDeliveryForPayment.debit ? 'paid' : 'partial';
+
+        const delRes = await deliveriesAPI.update(delId, {
+          amountPaid: newPaid,
+          paymentStatus: newStatus,
+        });
+
+        await paymentsAPI.create({
+          entityType: 'shop',
+          shopId,
+          amount: Number(paymentAmount),
+          paymentMethod,
+          transactionRef,
+          notes: paymentNotes || `Cash collected for dispatch order (${selectedDeliveryForPayment.reference})`,
+          paymentDate: new Date().toISOString(),
+        });
+
+        if (delRes.success) {
+          showSuccess(`Order ${selectedDeliveryForPayment.reference} marked as paid!`);
+        } else {
+          showSuccess('Payment recorded & dispatch status updated!');
+        }
+      } else {
+        const payload = {
+          entityType: 'shop',
+          shopId,
+          amount: Number(paymentAmount),
+          paymentMethod,
+          transactionRef,
+          notes: paymentNotes || 'Later Paid Settlement',
+          paymentDate: new Date().toISOString(),
+        };
+
+        const res = await paymentsAPI.create(payload);
+        if (res.success) {
+          if (res.isFallback) showWarning(res.message || 'Payment recorded locally (Offline mode).');
+          else showSuccess('Payment Received & Account Ledger Updated!');
+        } else {
+          showError(res.message || 'Failed to record payment.');
+        }
+      }
+
+      setPaymentModalOpen(false);
+      setSelectedDeliveryForPayment(null);
+      setPaymentAmount(0);
+      setTransactionRef('');
+      setPaymentNotes('');
+      loadShopDetails();
+    } catch (err: any) {
+      showError(err.message || 'Error recording payment.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const loadShopDetails = async () => {
     setLoading(true);
@@ -183,7 +288,9 @@ export default function ShopDetailsClient() {
     reference: d.deliveryNumber || 'DEL-2026',
     description: `Dispatched ${d.items?.map((i: any) => `${i.quantity} ${i.sproutType}`).join(', ') || 'Sprouts'}`,
     debit: d.netAmount || 0,
-    credit: d.amountPaid || 0,
+    credit: 0,
+    amountPaid: d.amountPaid || 0,
+    paymentStatus: d.paymentStatus || ((d.amountPaid || 0) >= (d.netAmount || 0) ? 'paid' : (d.amountPaid || 0) > 0 ? 'partial' : 'unpaid'),
     balance: (d.netAmount || 0) - (d.amountPaid || 0),
   })) : []);
 
@@ -242,18 +349,24 @@ export default function ShopDetailsClient() {
           </div>
 
           {/* Quick Action Mobile Buttons */}
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-900/30">
+          <div className="grid grid-cols-3 gap-2 pt-1 border-t border-emerald-900/30">
             <button
-              onClick={() => setOrderModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 shadow-md shadow-emerald-900/30"
+              onClick={openOrderModal}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 shadow-md shadow-emerald-900/30"
             >
-              <Plus className="w-3.5 h-3.5" /> Dispatch Order
+              <Plus className="w-3.5 h-3.5" /> Dispatch
+            </button>
+            <button
+              onClick={() => openPaymentModal(summary.pendingPayment, 'Later Paid Settlement')}
+              className="bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 shadow-md shadow-amber-900/30"
+            >
+              <Banknote className="w-3.5 h-3.5" /> Pay Due
             </button>
             <button
               onClick={() => setReturnModalOpen(true)}
-              className="bg-slate-800 text-rose-400 border border-rose-900/40 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1"
+              className="bg-slate-800 text-rose-400 border border-rose-900/40 py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Record Return
+              <RotateCcw className="w-3.5 h-3.5" /> Return
             </button>
           </div>
         </div>
@@ -266,10 +379,22 @@ export default function ShopDetailsClient() {
             <p className="text-[8px] text-emerald-400 font-bold">Delivered - Returned</p>
           </div>
 
-          <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3">
-            <p className="text-[9px] text-slate-400 uppercase font-semibold">Pending Payment</p>
-            <p className="text-base font-bold text-amber-400 mt-0.5">₹{(summary.pendingPayment || 0).toLocaleString('en-IN')}</p>
-            <p className="text-[8px] text-amber-300 font-bold">Remaining Due</p>
+          <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3 flex flex-col justify-between">
+            <div>
+              <p className="text-[9px] text-slate-400 uppercase font-semibold">Pending Payment</p>
+              <p className="text-base font-bold text-amber-400 mt-0.5">₹{(summary.pendingPayment || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-1 border-t border-amber-900/30">
+              <p className="text-[8px] text-amber-300 font-bold">Remaining Due</p>
+              {summary.pendingPayment > 0 && (
+                <button
+                  onClick={() => openPaymentModal(summary.pendingPayment, 'Settle Pending Dues')}
+                  className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[9px] font-bold transition-colors"
+                >
+                  Pay Now
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-2.5">
@@ -313,40 +438,63 @@ export default function ShopDetailsClient() {
             <h3 className="font-bold text-white text-xs flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-emerald-400" /> Account Ledger
             </h3>
-            <span className="text-[9px] text-slate-400 font-semibold">Running Balance</span>
+            <button
+              onClick={() => openPaymentModal(summary.pendingPayment, 'Account Ledger Settlement')}
+              className="text-[9px] px-2 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-800/60 rounded-lg font-bold flex items-center gap-1 hover:bg-emerald-900 transition-colors"
+            >
+              <Banknote className="w-3 h-3 text-emerald-400" /> + Record Payment
+            </button>
           </div>
 
           <div className="space-y-2">
             {ledger.length === 0 ? (
               <p className="text-[10px] text-slate-500 py-3 text-center">No ledger entries yet.</p>
             ) : (
-              ledger.map((entry: any, idx: number) => (
-                <div key={idx} className="bg-slate-800/60 border border-emerald-900/30 rounded-xl p-2.5 text-xs space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-white text-[11px]">{entry.reference}</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                        entry.type === 'delivery'
-                          ? 'bg-blue-950 text-blue-300'
-                          : entry.type === 'payment'
-                          ? 'bg-emerald-950 text-emerald-300'
-                          : 'bg-rose-950 text-rose-300'
-                      }`}
-                    >
-                      {entry.type}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-300">{entry.description}</p>
-                  <div className="flex justify-between items-center text-[10px] pt-1 border-t border-emerald-900/20">
-                    <span className="text-slate-400">{entry.date}</span>
-                    <div className="flex gap-2 font-bold">
-                      {entry.debit > 0 && <span className="text-blue-300">+₹{entry.debit}</span>}
-                      {entry.credit > 0 && <span className="text-emerald-300">-₹{entry.credit}</span>}
-                      <span className="text-amber-300">Bal: ₹{(entry.balance || 0).toLocaleString('en-IN')}</span>
+              ledger.map((entry: any, idx: number) => {
+                const unpaidDue = entry.type === 'delivery' ? Math.max(0, (entry.debit || 0) - (entry.amountPaid || 0)) : 0;
+                const isDue = entry.type === 'delivery' && unpaidDue > 0 && entry.paymentStatus !== 'paid';
+
+                return (
+                  <div key={idx} className="bg-slate-800/60 border border-emerald-900/30 rounded-xl p-2.5 text-xs space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-white text-[11px]">{entry.reference}</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
+                          entry.type === 'delivery'
+                            ? 'bg-blue-950 text-blue-300'
+                            : entry.type === 'payment'
+                            ? 'bg-emerald-950 text-emerald-300'
+                            : 'bg-rose-950 text-rose-300'
+                        }`}
+                      >
+                        {entry.type}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300">{entry.description}</p>
+                    <div className="flex justify-between items-center text-[10px] pt-1 border-t border-emerald-900/20">
+                      <span className="text-slate-400">{entry.date}</span>
+                      <div className="flex items-center gap-2 font-bold">
+                        {entry.debit > 0 && <span className="text-blue-300">+₹{entry.debit}</span>}
+                        {entry.credit > 0 && <span className="text-emerald-300">-₹{entry.credit}</span>}
+                        {entry.type === 'delivery' && (
+                          isDue ? (
+                            <button
+                              onClick={() => openPaymentModalForDelivery(entry)}
+                              className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/40 rounded-lg text-[9px] font-bold transition-all ml-1 flex items-center gap-1 shadow-sm"
+                            >
+                              <Banknote className="w-3 h-3 text-amber-400" /> Mark as Paid (₹{unpaidDue})
+                            </button>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-emerald-950/90 text-emerald-400 border border-emerald-800/60 rounded-lg text-[9px] font-bold ml-1">
+                              Paid
+                            </span>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -380,30 +528,47 @@ export default function ShopDetailsClient() {
                   <div>
                     <label className="text-[10px] font-semibold text-slate-300 block mb-1">Quantity (Pkts)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={orderQty}
-                      onChange={(e) => setOrderQty(Number(e.target.value))}
+                      onKeyDown={allowOnlyNumbersKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeInteger(e.target.value);
+                        setOrderQty(clean === '' ? ('' as any) : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-slate-300 block mb-1">Rate (₹/Pkt)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={orderRate}
-                      onChange={(e) => setOrderQtyRate(Number(e.target.value))}
+                      onKeyDown={allowOnlyDecimalKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeDecimal(e.target.value);
+                        setOrderQtyRate(clean === '' ? ('' as any) : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-300 block mb-1">Cash Collected (₹)</label>
+                  <label className="text-[10px] font-semibold text-slate-300 block mb-1">
+                    Cash Collected Now (₹) <span className="text-amber-400 font-normal">(Leave 0 if Pay Later)</span>
+                  </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={amountPaid}
-                    onChange={(e) => setAmountPaid(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                    onKeyDown={allowOnlyDecimalKeys}
+                    onChange={(e) => {
+                      const clean = sanitizeDecimal(e.target.value);
+                      setAmountPaid(clean === '' ? ('' as any) : Number(clean));
+                    }}
+                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white font-bold"
                   />
                 </div>
 
@@ -417,9 +582,105 @@ export default function ShopDetailsClient() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-emerald-600 text-white rounded-xl font-bold"
+                    disabled={isSubmitting}
+                    className="px-4 py-1.5 bg-emerald-600 text-white rounded-xl font-bold flex items-center gap-1"
                   >
+                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                     Dispatch Order
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Record Payment (Later Paid) */}
+        {paymentModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-slate-900 border-t sm:border border-emerald-900/60 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-3">
+              <div className="flex justify-between items-center border-b border-emerald-900/40 pb-2">
+                <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <Banknote className="w-4 h-4 text-emerald-400" /> Record Payment in Account Ledger
+                </h3>
+                <button onClick={() => setPaymentModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRecordPayment} className="space-y-3 text-xs">
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-300 block mb-1">Payment Amount (₹)</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={paymentAmount}
+                    onKeyDown={allowOnlyDecimalKeys}
+                    onChange={(e) => {
+                      const clean = sanitizeDecimal(e.target.value);
+                      setPaymentAmount(clean === '' ? ('' as any) : Number(clean));
+                    }}
+                    placeholder="Enter collected amount"
+                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white font-bold"
+                    required
+                  />
+                  {summary.pendingPayment > 0 && (
+                    <p className="text-[9px] text-amber-400 mt-1 font-medium">
+                      Current Pending Balance: ₹{summary.pendingPayment.toLocaleString('en-IN')}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-300 block mb-1">Payment Mode</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e: any) => setPaymentMethod(e.target.value)}
+                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI / PhonePe / Paytm</option>
+                    <option value="bank_transfer">Bank Transfer / NEFT</option>
+                    <option value="cheque">Cheque</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-300 block mb-1">Transaction Ref / Txn ID</label>
+                  <input
+                    type="text"
+                    value={transactionRef}
+                    onChange={(e) => setTransactionRef(e.target.value)}
+                    placeholder="e.g. UPI-9812345 or Cash receipt #"
+                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-300 block mb-1">Notes / Reference</label>
+                  <input
+                    type="text"
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    placeholder="e.g. Later paid settlement for dispatch"
+                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-emerald-900/40">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentModalOpen(false)}
+                    className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-900/40"
+                  >
+                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    Save to Account Ledger
                   </button>
                 </div>
               </form>
@@ -456,18 +717,28 @@ export default function ShopDetailsClient() {
                   <div>
                     <label className="text-[10px] font-semibold text-slate-300 block mb-1">Returned Packets</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={returnQty}
-                      onChange={(e) => setReturnQty(Number(e.target.value))}
+                      onKeyDown={allowOnlyNumbersKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeInteger(e.target.value);
+                        setReturnQty(clean === '' ? ('' as any) : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-slate-300 block mb-1">Credit Rate (₹/Pkt)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={returnRate}
-                      onChange={(e) => setReturnRate(Number(e.target.value))}
+                      onKeyDown={allowOnlyDecimalKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeDecimal(e.target.value);
+                        setReturnRate(clean === '' ? ('' as any) : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>
@@ -493,8 +764,10 @@ export default function ShopDetailsClient() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-rose-600 text-white rounded-xl font-bold"
+                    disabled={isSubmitting}
+                    className="px-4 py-1.5 bg-rose-600 text-white rounded-xl font-bold flex items-center gap-1"
                   >
+                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                     Record Return
                   </button>
                 </div>

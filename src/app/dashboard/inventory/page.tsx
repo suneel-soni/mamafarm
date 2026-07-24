@@ -6,6 +6,7 @@ import { inventoryAPI } from '@/services/api';
 import { InventoryItem } from '@/types';
 import { Boxes, AlertTriangle, ShieldCheck, Search, Plus, Trash2, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { allowOnlyNumbersKeys, allowOnlyDecimalKeys, sanitizeInteger, sanitizeDecimal } from '@/utils/inputValidation';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -291,9 +292,14 @@ export default function InventoryPage() {
                   <div>
                     <label className="font-semibold text-slate-300 mb-1 block">Quantity</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={quantity}
-                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      onKeyDown={allowOnlyNumbersKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeInteger(e.target.value);
+                        setQuantity(clean === '' ? 0 : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>
@@ -301,9 +307,14 @@ export default function InventoryPage() {
                   <div>
                     <label className="font-semibold text-slate-300 mb-1 block">Min Alert</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={minThreshold}
-                      onChange={(e) => setMinThreshold(Number(e.target.value))}
+                      onKeyDown={allowOnlyNumbersKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeInteger(e.target.value);
+                        setMinThreshold(clean === '' ? 0 : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>
@@ -311,9 +322,14 @@ export default function InventoryPage() {
                   <div>
                     <label className="font-semibold text-slate-300 mb-1 block">Valuation (₹)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={valuationPerUnit}
-                      onChange={(e) => setValuationPerUnit(Number(e.target.value))}
+                      onKeyDown={allowOnlyDecimalKeys}
+                      onChange={(e) => {
+                        const clean = sanitizeDecimal(e.target.value);
+                        setValuationPerUnit(clean === '' ? 0 : Number(clean));
+                      }}
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
                     />
                   </div>

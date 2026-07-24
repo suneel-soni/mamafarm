@@ -27,9 +27,12 @@ export const seedData = async () => {
       { upsert: true, new: true }
     );
 
-    const userCount = await User.countDocuments();
-    if (userCount > 1) {
-      console.log('Database already populated. Skipping full seed.');
+    const shopCount = await Shop.countDocuments();
+    const supplierCount = await Supplier.countDocuments();
+    const materialCount = await Material.countDocuments();
+
+    if (shopCount > 0 || supplierCount > 0 || materialCount > 0) {
+      console.log('Database already contains user data (Shops/Suppliers/Materials). Skipping static seed.');
       return;
     }
 

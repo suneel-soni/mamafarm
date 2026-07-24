@@ -6,6 +6,7 @@ import { productionAPI, materialsAPI } from '@/services/api';
 import { ProductionBatch, Material } from '@/types';
 import { Factory, Plus, Check, X, Flame, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { allowOnlyNumbersKeys, allowOnlyDecimalKeys } from '@/utils/inputValidation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -210,7 +211,9 @@ export default function ProductionPage() {
                   <div>
                     <label className="text-xs font-semibold text-slate-300 mb-1 block">Raw Consumed Qty (kg)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      onKeyDown={allowOnlyDecimalKeys}
                       {...register('rawMaterialQty', { valueAsNumber: true })}
                       placeholder="50"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"
@@ -220,8 +223,9 @@ export default function ProductionPage() {
                   <div>
                     <label className="text-xs font-semibold text-slate-300 mb-1 block">Waste / Ungerminated (kg)</label>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="decimal"
+                      onKeyDown={allowOnlyDecimalKeys}
                       {...register('wasteQty', { valueAsNumber: true })}
                       placeholder="1.2"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"
@@ -250,7 +254,9 @@ export default function ProductionPage() {
                   <div>
                     <label className="text-xs font-semibold text-slate-300 mb-1 block">Output Produced (Packets)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      onKeyDown={allowOnlyNumbersKeys}
                       {...register('sproutsProducedQty', { valueAsNumber: true })}
                       placeholder="500"
                       className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-xs text-white"

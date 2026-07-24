@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { connectToDatabase } from '@/lib/db';
 import Shop from '@/models/Shop';
 import Delivery from '@/models/Delivery';
@@ -49,7 +50,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const currentQuantity = Math.max(0, totalDeliveredQty - totalReturnedQty);
 
     const totalDeliveredValue = deliveries.reduce((acc, d) => acc + (d.netAmount || 0), 0);
-    const totalPaidAmount = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    const totalDeliveryPaid = deliveries.reduce((acc, d) => acc + (d.amountPaid || 0), 0);
+    const standalonePaymentsPaid = payments.filter(p => !p.notes || (!p.notes.includes('order dispatch') && !p.notes.includes('collected for dispatch'))).reduce((acc, p) => acc + (p.amount || 0), 0);
+    const totalPaidAmount = totalDeliveryPaid + standalonePaymentsPaid;
     const totalReturnedValue = returns.reduce((acc, r) => acc + (r.totalRefundAmount || 0), 0);
 
     const pendingPayment = Math.max(0, totalDeliveredValue - totalPaidAmount - totalReturnedValue);
@@ -73,17 +76,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     deliveries.forEach((d) => {
       ledgerEntries.push({
+        id: String(d._id),
         timestamp: new Date(d.deliveryDate).getTime(),
         date: new Date(d.deliveryDate).toLocaleDateString('en-IN'),
         type: 'delivery',
         reference: d.deliveryNumber,
-        description: `Sprouts Dispatch (${d.items.length} items)`,
-        debit: d.netAmount,
+        description: `Sprouts Dispatch (${(d.items || []).length} items)`,
+        debit: d.netAmount || 0,
         credit: 0,
+        amountPaid: d.amountPaid || 0,
+        paymentStatus: d.paymentStatus || ((d.amountPaid || 0) >= (d.netAmount || 0) ? 'paid' : (d.amountPaid || 0) > 0 ? 'partial' : 'unpaid'),
       });
     });
 
     payments.forEach((p) => {
+      const isDispatchPayment = p.notes && (p.notes.includes('order dispatch') || p.notes.includes('collected for dispatch') || p.notes.includes('dispatch order'));
+      if (isDispatchPayment) {
+        return;
+      }
       ledgerEntries.push({
         timestamp: new Date(p.paymentDate).getTime(),
         date: new Date(p.paymentDate).toLocaleDateString('en-IN'),

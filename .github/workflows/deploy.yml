@@ -38,7 +38,10 @@ jobs:
         env:
           BUILD_STATIC: 'true'
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.mamafarm.in/api' }}
-        run: npm run build
+        run: |
+          npm run build
+          touch ./out/.nojekyll
+          cp CNAME ./out/CNAME || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

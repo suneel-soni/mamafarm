@@ -225,10 +225,10 @@ export const dashboardAPI = {
       const deliveries = getStorage<any[]>('deliveries', []);
       const expenses = getStorage<any[]>('expenses', []);
 
-      const totalRevenue = deliveries.reduce((acc, d) => acc + (d.netAmount || 0), 36500);
-      const totalCollected = deliveries.reduce((acc, d) => acc + (d.amountPaid || 0), 31500);
-      const totalShopDues = shops.reduce((acc, s) => acc + (s.outstandingBalance || 0), 5000);
-      const totalOperatingExpense = expenses.reduce((acc, e) => acc + (e.amount || 0), 2500);
+      const totalRevenue = deliveries.reduce((acc, d) => acc + (d.netAmount || 0), 0);
+      const totalCollected = deliveries.reduce((acc, d) => acc + (d.amountPaid || 0), 0);
+      const totalShopDues = shops.reduce((acc, s) => acc + (s.outstandingBalance || 0), 0);
+      const totalOperatingExpense = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
 
       return {
         success: true,
@@ -238,21 +238,15 @@ export const dashboardAPI = {
           kpis: {
             totalRevenue,
             totalCollected,
-            netProfit: totalRevenue - totalOperatingExpense - 12000,
+            netProfit: totalRevenue - totalOperatingExpense,
             totalShopDues,
-            totalSupplierDues: 5400,
-            totalMaterialCost: 12000,
+            totalSupplierDues: 0,
+            totalMaterialCost: 0,
             totalOperatingExpense,
-            sproutsStock: 180,
+            sproutsStock: 0,
             lowStockAlertsCount: 0,
           },
-          chartData: [
-            { date: 'Mon', revenue: 4500, expenses: 800 },
-            { date: 'Tue', revenue: 6200, expenses: 1100 },
-            { date: 'Wed', revenue: 5800, expenses: 950 },
-            { date: 'Thu', revenue: 7100, expenses: 1200 },
-            { date: 'Fri', revenue: 8400, expenses: 1400 },
-          ],
+          chartData: [],
           recentActivities: deliveries.slice(-5).map((d) => ({
             _id: d._id,
             description: `Dispatched ${d.netAmount ? `₹${d.netAmount}` : ''} to ${d.shopName || 'Partner'}`,
@@ -269,23 +263,20 @@ export const dashboardAPI = {
     } catch (error: any) {
       const errInfo = extractApiError(error);
       const shops = getStorage<any[]>('shops', []);
+      const deliveries = getStorage<any[]>('deliveries', []);
+      const totalRev = deliveries.reduce((acc, d) => acc + (d.netAmount || 0), 0);
       return {
         success: true,
         isFallback: true,
         message: errInfo.message,
         data: {
-          todaySales: 8400,
-          weeklySales: 36500,
-          monthlySales: 142000,
-          totalRevenue: 142000,
-          pendingCollection: 5000,
+          todaySales: 0,
+          weeklySales: totalRev,
+          monthlySales: totalRev,
+          totalRevenue: totalRev,
+          pendingCollection: 0,
           topPerformingShops: shops.slice(0, 3),
-          dailyGraph: [
-            { date: '18 Jul', sales: 4200 },
-            { date: '20 Jul', sales: 5800 },
-            { date: '22 Jul', sales: 7100 },
-            { date: '24 Jul', sales: 8400 },
-          ],
+          dailyGraph: [],
           monthlyGraph: [],
         },
       };
@@ -569,6 +560,24 @@ export const deliveriesAPI = {
       return { success: true, isFallback: true, message: 'Server offline. Dispatch recorded locally.', data: newDelivery };
     }
   },
+  update: async (id: string, data: any): Promise<ApiResponse> => {
+    try {
+      const res = await api.put(`/deliveries/${id}`, data);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      const list = getStorage<any[]>('deliveries', []);
+      const index = list.findIndex((d) => d._id === id || d.deliveryNumber === id);
+      if (index !== -1) {
+        list[index] = { ...list[index], ...data };
+        setStorage('deliveries', list);
+      }
+      return { success: true, isFallback: true, message: 'Server offline. Delivery updated locally.' };
+    }
+  },
   delete: async (id: string): Promise<ApiResponse> => {
     try {
       const res = await api.delete(`/deliveries/${id}`);
@@ -670,7 +679,7 @@ export const paymentsAPI = {
       const payments = getStorage<any[]>('payments', []);
       const shops = getStorage<any[]>('shops', []);
       const shop = shops.find((s) => s._id === data.shopId || s.shopCode === data.shopId);
-      const paid = Number(data.amountPaid || 0);
+      const paid = Number(data.amountPaid || data.amount || 0);
 
       if (shop) {
         shop.totalPaidAmount = (shop.totalPaidAmount || 0) + paid;
