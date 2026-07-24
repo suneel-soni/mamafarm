@@ -747,12 +747,64 @@ export const inventoryAPI = {
         success: true,
         isFallback: true,
         message: errInfo.message,
-        data: getStorage('inventory', [
-          { _id: 'INV-101', sproutType: 'Moong Sprouts', currentStock: 120, unitPrice: 25 },
-          { _id: 'INV-102', sproutType: 'Chana Sprouts', currentStock: 80, unitPrice: 20 },
-          { _id: 'INV-103', sproutType: 'Mixed Sprouts', currentStock: 60, unitPrice: 30 },
-        ]),
+        data: getStorage('inventory', []),
       };
+    }
+  },
+  create: async (data: any): Promise<ApiResponse> => {
+    try {
+      const res = await api.post('/inventory', data);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      const list = getStorage<any[]>('inventory', []);
+      const newItem = {
+        _id: `INV-${101 + list.length}`,
+        ...data,
+      };
+      setStorage('inventory', [...list, newItem]);
+      return { success: true, isFallback: true, message: 'Server offline. Inventory item saved locally.', data: newItem };
+    }
+  },
+  update: async (id: string, data: any): Promise<ApiResponse> => {
+    try {
+      const res = await api.put(`/inventory/${id}`, data);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+    }
+  },
+  delete: async (id: string): Promise<ApiResponse> => {
+    try {
+      const res = await api.delete(`/inventory/${id}`);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      const list = getStorage<any[]>('inventory', []);
+      const updated = list.filter((i) => i._id !== id);
+      setStorage('inventory', updated);
+      return { success: true, isFallback: true, message: 'Server offline. Item deleted locally.' };
+    }
+  },
+  deleteAll: async (): Promise<ApiResponse> => {
+    try {
+      const res = await api.delete('/inventory');
+      setStorage('inventory', []);
+      return res.data;
+    } catch (error: any) {
+      const errInfo = extractApiError(error);
+      if (!errInfo.isNetworkError) {
+        return { success: false, message: errInfo.message, statusCode: errInfo.statusCode };
+      }
+      setStorage('inventory', []);
+      return { success: true, isFallback: true, message: 'Server offline. Inventory cleared locally.' };
     }
   },
 };

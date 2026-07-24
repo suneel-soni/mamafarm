@@ -104,15 +104,7 @@ export const seedData = async () => {
       paymentStatus: 'paid',
     });
 
-    // 5. Inventory Items
-    await Inventory.create([
-      { itemName: 'Green Moong Grain', type: 'raw_material', quantity: 250, unit: 'kg', minThreshold: 50, valuationPerUnit: 95 },
-      { itemName: 'Brown Chana Grain', type: 'raw_material', quantity: 180, unit: 'kg', minThreshold: 40, valuationPerUnit: 75 },
-      { itemName: 'Moong Sprouts', type: 'finished_sprout', quantity: 450, unit: 'packets', minThreshold: 100, valuationPerUnit: 25 },
-      { itemName: 'Chana Sprouts', type: 'finished_sprout', quantity: 300, unit: 'packets', minThreshold: 80, valuationPerUnit: 20 },
-      { itemName: 'Mixed Sprouts', type: 'finished_sprout', quantity: 200, unit: 'packets', minThreshold: 50, valuationPerUnit: 30 },
-      { itemName: 'Sprout Pouches', type: 'packaging', quantity: 2000, unit: 'pcs', minThreshold: 300, valuationPerUnit: 1.5 },
-    ]);
+    // 5. Inventory Items (mock data removed)
 
     // 6. Shops / Clients
     const shop1 = await Shop.create({

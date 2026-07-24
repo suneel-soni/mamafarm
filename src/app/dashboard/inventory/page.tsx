@@ -4,20 +4,33 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { inventoryAPI } from '@/services/api';
 import { InventoryItem } from '@/types';
-import { Boxes, AlertTriangle, ShieldCheck, Search, ArrowUpRight } from 'lucide-react';
+import { Boxes, AlertTriangle, ShieldCheck, Search, Plus, Trash2, X, Loader2 } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form state
+  const [itemName, setItemName] = useState('');
+  const [type, setType] = useState('raw_material');
+  const [quantity, setQuantity] = useState(0);
+  const [unit, setUnit] = useState('kg');
+  const [minThreshold, setMinThreshold] = useState(10);
+  const [valuationPerUnit, setValuationPerUnit] = useState(0);
+
+  const { showSuccess, showError } = useToast();
 
   const loadInventory = async () => {
     setLoading(true);
     try {
       const res = await inventoryAPI.getAll();
       if (res.success) setInventory(res.data || []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      showError(err.message || 'Failed to load inventory.');
     } finally {
       setLoading(false);
     }
@@ -27,13 +40,60 @@ export default function InventoryPage() {
     loadInventory();
   }, []);
 
+  const handleCreateStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemName) return showError('Please specify item name.');
+
+    setIsSubmitting(true);
+    try {
+      const res = await inventoryAPI.create({
+        itemName,
+        type,
+        quantity: Number(quantity),
+        unit,
+        minThreshold: Number(minThreshold),
+        valuationPerUnit: Number(valuationPerUnit),
+      });
+
+      if (res.success) {
+        showSuccess('New stock item added to matrix!');
+        setModalOpen(false);
+        setItemName('');
+        setQuantity(0);
+        setValuationPerUnit(0);
+        loadInventory();
+      } else {
+        showError(res.message || 'Failed to create stock item.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'An error occurred while adding stock item.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteItem = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to remove "${name}" from inventory?`)) return;
+    try {
+      const res = await inventoryAPI.delete(id);
+      if (res.success) {
+        showSuccess(`Removed "${name}" from inventory.`);
+        loadInventory();
+      } else {
+        showError(res.message || 'Failed to delete item.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Error deleting inventory item.');
+    }
+  };
+
   const totalValuation = inventory.reduce((sum, item) => sum + item.quantity * (item.valuationPerUnit || 0), 0);
   const lowStockCount = inventory.filter((item) => item.quantity <= item.minThreshold).length;
 
   const filtered = inventory.filter(
     (item) =>
-      item.itemName.toLowerCase().includes(search.toLowerCase()) ||
-      item.type.toLowerCase().includes(search.toLowerCase())
+      item.itemName?.toLowerCase().includes(search.toLowerCase()) ||
+      item.type?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -49,6 +109,13 @@ export default function InventoryPage() {
               Live tracking of raw beans, packaged sprouts, packaging pouches, low stock alerts and stock valuation.
             </p>
           </div>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-900/30 transition-all self-start"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Stock SKU</span>
+          </button>
         </div>
 
         {/* Overview KPI row */}
@@ -99,19 +166,20 @@ export default function InventoryPage() {
                   <th className="p-4">Valuation / Unit</th>
                   <th className="p-4">Total Stock Value</th>
                   <th className="p-4">Stock Status</th>
+                  <th className="p-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-emerald-900/20">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400">
+                    <td colSpan={8} className="p-8 text-center text-slate-400">
                       Loading inventory levels...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400">
-                      No stock items found.
+                    <td colSpan={8} className="p-8 text-center text-slate-400">
+                      No stock items found in matrix.
                     </td>
                   </tr>
                 ) : (
@@ -149,6 +217,15 @@ export default function InventoryPage() {
                             )}
                           </span>
                         </td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleDeleteItem(item._id, item.itemName)}
+                            title="Delete Stock Item"
+                            className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-900/50 rounded-lg border border-rose-900/30 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -157,6 +234,112 @@ export default function InventoryPage() {
             </table>
           </div>
         </div>
+
+        {/* Modal Create Stock Item */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-emerald-900/60 rounded-2xl w-full max-w-md p-6 shadow-2xl relative space-y-4">
+              <div className="flex justify-between items-center border-b border-emerald-900/40 pb-3">
+                <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                  <Boxes className="w-5 h-5" /> Add Stock Matrix Item
+                </h3>
+                <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateStock} className="space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-300 mb-1 block">Item Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Green Moong Grain / Sprout Pouches"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-300 mb-1 block">Category Type</label>
+                    <select
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                    >
+                      <option value="raw_material">Raw Material</option>
+                      <option value="finished_sprout">Finished Sprout</option>
+                      <option value="packaging">Packaging</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-300 mb-1 block">Measurement Unit</label>
+                    <input
+                      type="text"
+                      placeholder="kg / packets / pcs"
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-300 mb-1 block">Quantity</label>
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-300 mb-1 block">Min Alert</label>
+                    <input
+                      type="number"
+                      value={minThreshold}
+                      onChange={(e) => setMinThreshold(Number(e.target.value))}
+                      className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-300 mb-1 block">Valuation (₹)</label>
+                    <input
+                      type="number"
+                      value={valuationPerUnit}
+                      onChange={(e) => setValuationPerUnit(Number(e.target.value))}
+                      className="w-full bg-slate-800 border border-emerald-900/40 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-emerald-900/40">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-lg flex items-center gap-1.5"
+                  >
+                    {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Save Stock SKU</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
