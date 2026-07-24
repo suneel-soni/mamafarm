@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 import { connectToDatabase } from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';

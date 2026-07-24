@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/db';
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 import Delivery from '@/models/Delivery';
 import Shop from '@/models/Shop';
 import Supplier from '@/models/Supplier';

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 export function generateStaticParams() { return [{ id: 'stub' }]; }
 import { connectToDatabase } from '@/lib/db';
 import Supplier from '@/models/Supplier';
