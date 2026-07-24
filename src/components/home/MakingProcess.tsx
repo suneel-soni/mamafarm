@@ -2,86 +2,63 @@
 
 import { motion } from 'framer-motion';
 import { processSteps } from '../../data/home';
-import { Award, Eye, Flame, Hand, Package, Soup, Sparkles } from 'lucide-react';
+import { Award, Eye, Flame, Hand, Package, Droplets, Sparkles } from 'lucide-react';
 
 const iconMap: Record<number, React.ComponentType<{ className?: string }>> = {
 	1: Sparkles,
-	2: Flame,
-	3: Soup,
+	2: Droplets,
+	3: Flame,
 	4: Award,
 	5: Eye,
-	6: Hand,
-	7: Package,
+	6: Package,
+	7: Hand,
 };
 
 export default function MakingProcess() {
 	return (
-		<section className='bg-white py-20 lg:py-28' id='process'>
-			<div className='container mx-auto px-4 max-w-5xl'>
+		<section className='bg-slate-950 py-10 px-4 border-b border-slate-800' id='process'>
+			<div className='w-full'>
 				{/* Section Header */}
-				<div className='text-center max-w-2xl mx-auto mb-20'>
-					<motion.span
-						initial={{ opacity: 0, scale: 0.9 }}
-						whileInView={{ opacity: 1, scale: 1 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5 }}
-						className='inline-block px-4 py-1.5 bg-brand-green/10 text-brand-green rounded-full text-sm font-semibold tracking-wide uppercase mb-4'
-					>
-						Traditional Craftsmanship
-					</motion.span>
-					<motion.h2
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.6, delay: 0.1 }}
-						className='text-3xl md:text-4xl lg:text-5xl font-extrabold text-brand-green mb-6'
-					>
-						Prepared with Care
-					</motion.h2>
-					<motion.p
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.6, delay: 0.2 }}
-						className='text-gray-600 text-base md:text-lg'
-					>
-						Observe the traditional steps and meticulous craft that bring authentic MamaFarm laddus from our kitchen to your home.
-					</motion.p>
+				<div className='text-center max-w-xs mx-auto mb-8'>
+					<span className='inline-block px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-[11px] font-bold tracking-wide uppercase mb-2 border border-emerald-500/20'>
+						Hygienic Process
+					</span>
+					<h2 className='text-xl font-black text-white mb-2'>
+						How We Sprout Fresh
+					</h2>
+					<p className='text-slate-400 text-xs leading-relaxed'>
+						Observe our step-by-step hygienic sprouting and express delivery process.
+					</p>
 				</div>
 
-				{/* Modern Vertical Timeline */}
-				<div className='relative border-l-2 border-brand-wheat/20 ml-4 md:ml-32 md:mr-12 space-y-12 py-4'>
+				{/* Vertical Timeline Mobile View */}
+				<div className='relative border-l border-emerald-500/30 ml-4 space-y-4 py-2'>
 					{processSteps.map((step, index) => {
 						const IconComponent = iconMap[step.id] || Sparkles;
 
 						return (
 							<motion.div
 								key={step.id}
-								initial={{ opacity: 0, x: -30 }}
+								initial={{ opacity: 0, x: -15 }}
 								whileInView={{ opacity: 1, x: 0 }}
-								viewport={{ once: true, margin: '-80px' }}
-								transition={{ duration: 0.6, delay: 0.05 * index, type: 'spring' }}
-								className='relative pl-8 md:pl-12 group'
+								viewport={{ once: true, margin: '-50px' }}
+								transition={{ duration: 0.4, delay: 0.05 * index }}
+								className='relative pl-6'
 							>
 								{/* Step Timeline Indicator dot/icon */}
-								<div className='absolute -left-6 md:-left-7 top-0.5 bg-brand-cream border-2 border-brand-wheat rounded-full w-12 h-12 flex items-center justify-center text-brand-wheat shadow-md z-10 group-hover:bg-brand-wheat group-hover:text-white transition-all duration-300'>
-									<IconComponent className='w-5 h-5' />
-								</div>
-
-								{/* Left Side Label (Desktop Only) */}
-								<div className='hidden md:block absolute -left-32 top-3 w-20 text-right text-sm font-black tracking-widest text-brand-wheat/40 font-mono'>
-									STEP 0{step.id}
+								<div className='absolute -left-3.5 top-1.5 bg-slate-900 border border-emerald-500 rounded-full w-7 h-7 flex items-center justify-center text-emerald-400 shadow-md z-10'>
+									<IconComponent className='w-3.5 h-3.5' />
 								</div>
 
 								{/* Card Details */}
-								<div className='bg-brand-cream/50 hover:bg-brand-cream rounded-2xl p-6 md:p-8 border border-brand-green/5 shadow-sm hover:shadow-md transition-all duration-300'>
-									<div className='md:hidden text-xs font-black tracking-widest text-brand-wheat/40 font-mono mb-2'>
+								<div className='bg-slate-900/90 rounded-xl p-3.5 border border-slate-800 shadow-sm'>
+									<div className='text-[10px] font-black tracking-widest text-emerald-400 font-mono mb-1'>
 										STEP 0{step.id}
 									</div>
-									<h3 className='text-lg md:text-xl font-extrabold text-brand-green mb-2.5 group-hover:text-brand-wheat transition-colors duration-300'>
+									<h3 className='text-sm font-bold text-white mb-1'>
 										{step.title}
 									</h3>
-									<p className='text-gray-600 text-sm md:text-base leading-relaxed'>
+									<p className='text-slate-300 text-xs leading-relaxed'>
 										{step.description}
 									</p>
 								</div>
@@ -93,3 +70,4 @@ export default function MakingProcess() {
 		</section>
 	);
 }
+

@@ -35,37 +35,19 @@ export default function Promise() {
 	};
 
 	return (
-		<section className='bg-white py-20 lg:py-28' id='promise'>
-			<div className='container mx-auto px-4 max-w-6xl'>
+		<section className='bg-slate-950 py-10 px-4 border-b border-slate-800' id='promise'>
+			<div className='w-full'>
 				{/* Section Header */}
-				<div className='text-center max-w-2xl mx-auto mb-16'>
-					<motion.span
-						initial={{ opacity: 0, scale: 0.9 }}
-						whileInView={{ opacity: 1, scale: 1 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5 }}
-						className='inline-block px-4 py-1.5 bg-brand-green/10 text-brand-green rounded-full text-sm font-semibold tracking-wide uppercase mb-4'
-					>
+				<div className='text-center max-w-xs mx-auto mb-8'>
+					<span className='inline-block px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-[11px] font-bold tracking-wide uppercase mb-2 border border-emerald-500/20'>
 						Our Commitments
-					</motion.span>
-					<motion.h2
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.6, delay: 0.1 }}
-						className='text-3xl md:text-4xl lg:text-5xl font-extrabold text-brand-green mb-6'
-					>
-						Our Sincere Promise
-					</motion.h2>
-					<motion.p
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.6, delay: 0.2 }}
-						className='text-gray-600 text-base md:text-lg'
-					>
-						No shortcuts, no compromises. We stand by our commitments to ensure absolute purity and unmatched quality.
-					</motion.p>
+					</span>
+					<h2 className='text-xl font-black text-white mb-2'>
+						MamaFarm Sincere Promise
+					</h2>
+					<p className='text-slate-400 text-xs leading-relaxed'>
+						Absolute purity, zero chemical additives, and reliable daily delivery.
+					</p>
 				</div>
 
 				{/* Promise Cards Grid */}
@@ -74,7 +56,7 @@ export default function Promise() {
 					initial='hidden'
 					whileInView='visible'
 					viewport={{ once: true, margin: '-50px' }}
-					className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'
+					className='grid grid-cols-1 gap-3'
 				>
 					{promiseData.map((promise) => {
 						const IconComponent = iconMap[promise.iconName] || CheckCircle;
@@ -82,17 +64,16 @@ export default function Promise() {
 							<motion.div
 								key={promise.id}
 								variants={itemVariants}
-								whileHover={{ y: -6, scale: 1.01 }}
-								className='bg-brand-cream/30 hover:bg-brand-cream/60 rounded-2xl p-8 border border-brand-green/5 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group h-full'
+								className='bg-slate-900/90 rounded-xl p-4 border border-slate-800 shadow-sm flex items-start gap-3'
 							>
+								<div className='w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center flex-shrink-0 border border-emerald-500/20'>
+									<IconComponent className='w-4 h-4' />
+								</div>
 								<div>
-									<div className='w-12 h-12 rounded-xl bg-white flex items-center justify-center text-brand-wheat mb-6 border border-brand-green/5 shadow-sm group-hover:bg-brand-wheat group-hover:text-white transition-colors duration-300'>
-										<IconComponent className='w-6 h-6' />
-									</div>
-									<h3 className='text-lg md:text-xl font-extrabold text-brand-green mb-3'>
+									<h3 className='text-xs font-extrabold text-white mb-1'>
 										{promise.title}
 									</h3>
-									<p className='text-gray-600 text-sm md:text-base leading-relaxed'>
+									<p className='text-slate-300 text-xs leading-relaxed'>
 										{promise.description}
 									</p>
 								</div>
@@ -104,3 +85,4 @@ export default function Promise() {
 		</section>
 	);
 }
+

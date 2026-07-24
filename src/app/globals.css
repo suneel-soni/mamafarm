@@ -1,37 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-green: #2a4605;
-  --color-brand-brown: #86530c;
-  --color-brand-cream: #fefefe;
-  --color-brand-wheat: #965d14;
+  --color-brand-green: #283C06;
+  --color-brand-brown: #8B7E2A;
+  --color-brand-cream: #F4EDD6;
+  --color-brand-white: #FEFEFE;
 }
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 247, 242, 235;
-  /* brand.cream */
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 40, 60, 6;
+  --background-start-rgb: 254, 254, 254;
+  --background-end-rgb: 244, 237, 214;
 }
 
+html,
 body {
-  color: rgb(var(--foreground-rgb));
+  margin: 0;
+  padding: 0;
+  background-color: #FEFEFE;
+  color: #1a2205;
+  min-height: 100vh;
 }
 
-@layer base {
-  body {
-    @apply bg-brand-cream text-gray-900;
-  }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-@utility btn-primary {
-  @apply bg-brand-green text-white px-6 py-3 rounded-md font-medium transition-colors hover:bg-brand-green/90;
-}
-
-@utility btn-secondary {
-  @apply bg-brand-brown text-white px-6 py-3 rounded-md font-medium transition-colors hover:bg-brand-brown/90;
-}
-
-@utility btn-outline {
-  @apply border-2 border-brand-green text-brand-green px-6 py-3 rounded-md font-medium transition-colors hover:bg-brand-green hover:text-white;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

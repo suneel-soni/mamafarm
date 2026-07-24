@@ -5,92 +5,57 @@ import { Phone, ShoppingBag } from 'lucide-react';
 
 export default function CTA() {
 	return (
-		<section className='bg-white py-16 lg:py-24' id='cta'>
-			<div className='container mx-auto px-4 max-w-5xl'>
+		<section className='bg-slate-950 py-10 px-4 border-b border-slate-800' id='cta'>
+			<div className='w-full'>
 				<motion.div
-					initial={{ opacity: 0, y: 40, scale: 0.98 }}
-					whileInView={{ opacity: 1, y: 0, scale: 1 }}
+					initial={{ opacity: 0, y: 20 }}
+					whileInView={{ opacity: 1, y: 0 }}
 					viewport={{ once: true }}
-					transition={{ duration: 0.8, type: 'spring', stiffness: 70 }}
-					className='relative bg-gradient-to-br from-[#1B5E20] via-[#2E7D32] to-[#124214] rounded-3xl overflow-hidden shadow-2xl py-14 px-8 md:py-20 md:px-16 text-center text-white border border-brand-green/20'
+					className='relative bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 rounded-2xl overflow-hidden p-6 text-center text-white border border-emerald-800/40 shadow-xl'
 				>
-					{/* Glowing decorative ambient background blur elements */}
-					<div className='absolute -top-32 -left-32 w-96 h-96 bg-[#C6922F]/15 rounded-full blur-3xl' />
-					<div className='absolute -bottom-32 -right-32 w-96 h-96 bg-[#FFF8EE]/10 rounded-full blur-3xl' />
-
-					{/* Content */}
-					<div className='relative z-10 max-w-3xl mx-auto'>
-						<motion.span
-							initial={{ opacity: 0, scale: 0.9 }}
-							whileInView={{ opacity: 1, scale: 1 }}
-							viewport={{ once: true }}
-							transition={{ duration: 0.5, delay: 0.1 }}
-							className='inline-block px-4 py-1.5 bg-white/10 backdrop-blur-md text-[#FFF8EE] rounded-full text-xs md:text-sm font-bold tracking-wider uppercase mb-6 border border-white/10'
-						>
-							Order Freshly Prepared Laddus
-						</motion.span>
-						<motion.h2
-							initial={{ opacity: 0, y: 20 }}
-							whileInView={{ opacity: 1, y: 0 }}
-							viewport={{ once: true }}
-							transition={{ duration: 0.6, delay: 0.2 }}
-							className='text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6 leading-tight font-serif tracking-wide text-[#FFF8EE]'
-						>
-							Bring Home the Taste <br />
-							<span className='text-[#C6922F] italic font-normal'>of Tradition</span>
-						</motion.h2>
-						<motion.p
-							initial={{ opacity: 0, y: 20 }}
-							whileInView={{ opacity: 1, y: 0 }}
-							viewport={{ once: true }}
-							transition={{ duration: 0.6, delay: 0.3 }}
-							className='text-white/80 text-base md:text-lg lg:text-xl mb-10 leading-relaxed font-light'
-						>
-							Experience handcrafted Desi Ghee Besan Laddus made using premium ingredients and traditional recipes. Prepared fresh and made with care for your family.
-						</motion.p>
+					<div className='relative z-10'>
+						<span className='inline-block px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-[10px] font-bold tracking-wider uppercase mb-3 border border-emerald-500/30'>
+							Order Fresh Sprouts Daily
+						</span>
+						<h2 className='text-xl font-black mb-2 text-white leading-tight font-serif'>
+							Get Fresh Organic Sprouts <br />
+							<span className='text-emerald-400 italic font-normal'>Delivered To Your Door or Shop</span>
+						</h2>
+						<p className='text-slate-300 text-xs mb-6 leading-relaxed'>
+							Crisp, hygienic Moong, Chana & Mixed Sprouts packs available for home consumption and retail store delivery.
+						</p>
 
 						{/* CTA Buttons */}
-						<motion.div
-							initial={{ opacity: 0, y: 20 }}
-							whileInView={{ opacity: 1, y: 0 }}
-							viewport={{ once: true }}
-							transition={{ duration: 0.6, delay: 0.4 }}
-							className='flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6'
-						>
-							{/* Whatsapp Order / Contact Button */}
+						<div className='flex flex-col gap-2.5'>
+							{/* Whatsapp Order Button */}
 							<a
-								href='https://wa.me/918130188878?text=I%20want%20to%20order%20MamaFarm%20Desi%20Ghee%20Besan%20Laddus'
+								href='https://wa.me/918130188878?text=Hello%20MamaFarm!%20I%20want%20to%20order%20fresh%20Organic%20Sprouts.'
 								target='_blank'
 								rel='noopener noreferrer'
-								className='w-full sm:w-auto bg-[#C6922F] hover:bg-[#b08125] text-[#FFF8EE] font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all duration-300 flex items-center justify-center gap-2.5 group'
+								className='w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-5 rounded-xl text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 active:scale-95 transition-all'
 							>
-								<ShoppingBag className='w-5 h-5 group-hover:scale-110 transition-transform' />
-								<span>Order Now</span>
+								<ShoppingBag className='w-4 h-4' />
+								<span>Order via WhatsApp</span>
 							</a>
 
 							{/* Phone Call Button */}
 							<a
 								href='tel:8130188878'
-								className='w-full sm:w-auto bg-white/10 hover:bg-white/20 text-[#FFF8EE] font-bold py-4 px-8 rounded-full border border-white/20 shadow-md backdrop-blur-md active:scale-95 transition-all duration-300 flex items-center justify-center gap-2.5 group'
+								className='w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 px-5 rounded-xl text-xs border border-slate-700 flex items-center justify-center gap-2 active:scale-95 transition-all'
 							>
-								<Phone className='w-5 h-5 group-hover:animate-wiggle' />
-								<span>Call Now: 8130188878</span>
+								<Phone className='w-4 h-4 text-emerald-400' />
+								<span>Call Helpline: 8130188878</span>
 							</a>
-						</motion.div>
+						</div>
 
-						{/* Licensing/FSSAI Info footer */}
-						<motion.p
-							initial={{ opacity: 0 }}
-							whileInView={{ opacity: 1 }}
-							viewport={{ once: true }}
-							transition={{ duration: 0.5, delay: 0.5 }}
-							className='mt-10 text-xs text-white/50 tracking-widest uppercase font-mono'
-						>
+						{/* FSSAI Licensing */}
+						<p className='mt-6 text-[9px] text-slate-400 tracking-widest uppercase font-mono'>
 							FSSAI LIC. NO: 21226188002092
-						</motion.p>
+						</p>
 					</div>
 				</motion.div>
 			</div>
 		</section>
 	);
 }
+

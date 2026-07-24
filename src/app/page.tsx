@@ -14,8 +14,8 @@ export default function Home() {
 		'@type': 'Organization',
 		name: 'Mamafarm',
 		url: 'https://mamafarm.com',
-		logo: 'https://mamafarm.com/images/mamafarm-logo.png',
-		description: 'Pure Ingredients. True Goodness. Premium food brand specializing in traditional Desi Ghee Besan Laddu in India.',
+		logo: 'https://mamafarm.com/images/mamafarm-logo-light.png',
+		description: 'Fresh & Hygienic Organic Sprouts. Moong Sprouts, Chana Sprouts & Mixed Sprouts daily fresh supply.',
 		contactPoint: {
 			'@type': 'ContactPoint',
 			telephone: '+91-8130188878',
@@ -24,18 +24,22 @@ export default function Home() {
 	};
 
 	return (
-		<>
-			<script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+		<div className="w-full bg-slate-950 min-h-screen flex justify-center items-start">
+			{/* Mobile View Screen Frame */}
+			<div className="w-full max-w-md bg-slate-900 text-slate-100 min-h-screen shadow-2xl border-x border-slate-800/80 relative overflow-x-hidden">
+				<script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-			<Hero />
-			<WhyChoose />
-			<Ingredients />
-			<WhyUs />
-			<MakingProcess />
-			<Occasions />
-			<Promise />
-			<Faq />
-			<CTA />
-		</>
+				<Hero />
+				<WhyChoose />
+				<Ingredients />
+				<WhyUs />
+				<MakingProcess />
+				<Occasions />
+				<Promise />
+				<Faq />
+				<CTA />
+			</div>
+		</div>
 	);
 }
+

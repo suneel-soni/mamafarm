@@ -13,73 +13,51 @@ export default function Faq() {
 	};
 
 	return (
-		<section className='bg-brand-cream py-20 lg:py-28' id='faq'>
-			<div className='container mx-auto px-4 max-w-4xl'>
+		<section className='bg-slate-900 py-10 px-4 border-b border-slate-800' id='faq'>
+			<div className='w-full'>
 				{/* Section Header */}
-				<div className='text-center max-w-2xl mx-auto mb-16'>
-					<motion.span
-						initial={{ opacity: 0, scale: 0.9 }}
-						whileInView={{ opacity: 1, scale: 1 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5 }}
-						className='inline-block px-4 py-1.5 bg-brand-green/10 text-brand-green rounded-full text-sm font-semibold tracking-wide uppercase mb-4'
-					>
+				<div className='text-center max-w-xs mx-auto mb-8'>
+					<span className='inline-block px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-[11px] font-bold tracking-wide uppercase mb-2 border border-emerald-500/20'>
 						Got Questions?
-					</motion.span>
-					<motion.h2
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.6, delay: 0.1 }}
-						className='text-3xl md:text-4xl lg:text-5xl font-extrabold text-brand-green mb-6'
-					>
+					</span>
+					<h2 className='text-xl font-black text-white mb-2'>
 						Frequently Asked Questions
-					</motion.h2>
-					<motion.p
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.6, delay: 0.2 }}
-						className='text-gray-600 text-base md:text-lg'
-					>
-						Find answers to common questions about our ingredients, preparation, storage, and orders.
-					</motion.p>
+					</h2>
+					<p className='text-slate-400 text-xs leading-relaxed'>
+						Everything you need to know about our organic sprouts, shelf life, and shop deliveries.
+					</p>
 				</div>
 
 				{/* Accordion List */}
-				<div className='space-y-4 max-w-3xl mx-auto'>
-					{faqData.map((faq, index) => {
+				<div className='space-y-2.5 w-full'>
+					{faqData.map((faq) => {
 						const isOpen = activeId === faq.id;
 
 						return (
-							<motion.div
+							<div
 								key={faq.id}
-								initial={{ opacity: 0, y: 20 }}
-								whileInView={{ opacity: 1, y: 0 }}
-								viewport={{ once: true }}
-								transition={{ duration: 0.5, delay: 0.05 * index }}
-								className='bg-white rounded-2xl border border-brand-green/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow'
+								className='bg-slate-800/80 rounded-xl border border-slate-700/60 overflow-hidden shadow-sm'
 							>
 								{/* Accordion Trigger Header */}
 								<button
 									onClick={() => toggleFaq(faq.id)}
-									className='w-full text-left px-6 py-5 md:px-8 md:py-6 flex items-center justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2'
+									className='w-full text-left px-4 py-3 flex items-center justify-between gap-3 focus:outline-none'
 									aria-expanded={isOpen}
 									aria-controls={`faq-answer-${faq.id}`}
 									id={`faq-button-${faq.id}`}
 								>
-									<span className='flex items-center gap-3.5'>
-										<HelpCircle className='w-5 h-5 text-brand-wheat flex-shrink-0' />
-										<span className='font-bold text-brand-green text-base md:text-lg leading-snug'>
+									<span className='flex items-center gap-2.5'>
+										<HelpCircle className='w-4 h-4 text-emerald-400 flex-shrink-0' />
+										<span className='font-bold text-white text-xs leading-snug'>
 											{faq.question}
 										</span>
 									</span>
 									<motion.div
 										animate={{ rotate: isOpen ? 180 : 0 }}
-										transition={{ duration: 0.3, ease: 'easeInOut' }}
-										className='flex-shrink-0 w-8 h-8 rounded-full bg-brand-cream flex items-center justify-center text-brand-green border border-brand-green/5'
+										transition={{ duration: 0.2 }}
+										className='flex-shrink-0 w-6 h-6 rounded-full bg-slate-900 flex items-center justify-center text-emerald-400 border border-slate-700'
 									>
-										<ChevronDown className='w-4 h-4' />
+										<ChevronDown className='w-3.5 h-3.5' />
 									</motion.div>
 								</button>
 
@@ -95,26 +73,26 @@ export default function Faq() {
 												height: 'auto',
 												opacity: 1,
 												transition: {
-													height: { duration: 0.3, ease: 'easeOut' },
-													opacity: { duration: 0.2, delay: 0.1 },
+													height: { duration: 0.2, ease: 'easeOut' },
+													opacity: { duration: 0.15 },
 												},
 											}}
 											exit={{
 												height: 0,
 												opacity: 0,
 												transition: {
-													height: { duration: 0.3, ease: 'easeIn' },
-													opacity: { duration: 0.15 },
+													height: { duration: 0.2, ease: 'easeIn' },
+													opacity: { duration: 0.1 },
 												},
 											}}
 										>
-											<div className='px-6 pb-6 md:px-8 md:pb-8 pt-0 border-t border-brand-cream text-gray-600 text-sm md:text-base leading-relaxed pl-14 md:pl-16'>
+											<div className='px-4 pb-3.5 pt-0 text-slate-300 text-xs leading-relaxed pl-10 border-t border-slate-700/40'>
 												{faq.answer}
 											</div>
 										</motion.div>
 									)}
 								</AnimatePresence>
-							</motion.div>
+							</div>
 						);
 					})}
 				</div>
@@ -122,3 +100,4 @@ export default function Faq() {
 		</section>
 	);
 }
+
