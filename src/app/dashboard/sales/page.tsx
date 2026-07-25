@@ -52,6 +52,12 @@ export default function SalesPerformancePage() {
     );
   }
 
+  const todaySales = salesData.todaySales ?? 0;
+  const pendingCollection = salesData.pendingCollection ?? 0;
+  const weeklySales = salesData.weeklySales ?? 0;
+  const monthlySales = salesData.monthlySales ?? 0;
+  const topShops = salesData.topPerformingShops || [];
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -74,7 +80,7 @@ export default function SalesPerformancePage() {
           <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3 shadow-md">
             <p className="text-[10px] text-slate-400 font-semibold">Today's Sales</p>
             <p className="text-lg font-extrabold text-emerald-400 mt-0.5">
-              ₹{salesData.todaySales.toLocaleString('en-IN')}
+              ₹{todaySales.toLocaleString('en-IN')}
             </p>
             <p className="text-[9px] text-emerald-400/80 mt-0.5 flex items-center gap-0.5 font-bold">
               <ArrowUpRight className="w-3 h-3" /> Live
@@ -84,7 +90,7 @@ export default function SalesPerformancePage() {
           <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3 shadow-md">
             <p className="text-[10px] text-slate-400 font-semibold">Pending Collection</p>
             <p className="text-lg font-extrabold text-amber-400 mt-0.5">
-              ₹{salesData.pendingCollection.toLocaleString('en-IN')}
+              ₹{pendingCollection.toLocaleString('en-IN')}
             </p>
             <p className="text-[9px] text-amber-300 mt-0.5 font-bold">Shop Dues</p>
           </div>
@@ -92,7 +98,7 @@ export default function SalesPerformancePage() {
           <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3 shadow-md">
             <p className="text-[10px] text-slate-400 font-semibold">Weekly Sales</p>
             <p className="text-base font-bold text-emerald-300 mt-0.5">
-              ₹{salesData.weeklySales.toLocaleString('en-IN')}
+              ₹{weeklySales.toLocaleString('en-IN')}
             </p>
             <p className="text-[9px] text-slate-500">7 Days</p>
           </div>
@@ -100,7 +106,7 @@ export default function SalesPerformancePage() {
           <div className="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3 shadow-md">
             <p className="text-[10px] text-slate-400 font-semibold">Monthly Sales</p>
             <p className="text-base font-bold text-white mt-0.5">
-              ₹{salesData.monthlySales.toLocaleString('en-IN')}
+              ₹{monthlySales.toLocaleString('en-IN')}
             </p>
             <p className="text-[9px] text-slate-500">This Month</p>
           </div>
@@ -117,7 +123,7 @@ export default function SalesPerformancePage() {
 
           <div className="h-44 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesData.dailyGraph}>
+              <AreaChart data={salesData.dailyGraph || []}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
@@ -143,7 +149,7 @@ export default function SalesPerformancePage() {
 
           <div className="h-44 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={salesData.monthlyGraph}>
+              <BarChart data={salesData.monthlyGraph || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="month" stroke="#64748b" fontSize={9} />
                 <YAxis stroke="#64748b" fontSize={9} tickFormatter={(v) => `₹${v}`} />
@@ -165,29 +171,32 @@ export default function SalesPerformancePage() {
           </div>
 
           <div className="space-y-2">
-            {salesData.topPerformingShops.map((shop, idx) => (
-              <div
-                key={shop._id}
-                className="bg-slate-800/60 border border-emerald-900/40 rounded-xl p-2.5 flex items-center gap-2.5"
-              >
-                <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-700 shrink-0">
-                  <img
-                    src={shop.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
-                    alt={shop.shopName}
-                    className="w-full h-full object-cover"
-                  />
+            {topShops.map((shop, idx) => {
+              const shopSales = shop.totalSales ?? shop.deliveredQty ?? 0;
+              return (
+                <div
+                  key={shop._id || idx}
+                  className="bg-slate-800/60 border border-emerald-900/40 rounded-xl p-2.5 flex items-center gap-2.5"
+                >
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-700 shrink-0">
+                    <img
+                      src={shop.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600'}
+                      alt={shop.shopName || 'Shop'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-white text-xs truncate">{shop.shopName || 'Shop'}</p>
+                    <p className="text-[10px] text-emerald-400 font-bold">
+                      ₹{shopSales.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-md">
+                    #{idx + 1}
+                  </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-white text-xs truncate">{shop.shopName}</p>
-                  <p className="text-[10px] text-emerald-400 font-bold">
-                    ₹{shop.totalSales.toLocaleString('en-IN')}
-                  </p>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-md">
-                  #{idx + 1}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

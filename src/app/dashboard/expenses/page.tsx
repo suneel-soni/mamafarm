@@ -117,7 +117,7 @@ export default function ExpensesPage() {
         <div className="bg-slate-900/80 border border-emerald-900/40 rounded-2xl p-5 shadow-lg flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-400 font-medium">Total Logged Operating Expense</p>
-            <p className="text-3xl font-bold text-rose-400 mt-1">₹{totalExpense.toLocaleString('en-IN')}</p>
+            <p className="text-3xl font-bold text-rose-400 mt-1">₹{(totalExpense || 0).toLocaleString('en-IN')}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
             <PieChart className="w-6 h-6" />

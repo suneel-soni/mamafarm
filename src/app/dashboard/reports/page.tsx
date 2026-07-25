@@ -75,22 +75,22 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-slate-800/50 p-4 rounded-xl border border-emerald-900/30">
               <p className="text-xs text-slate-400">Gross Sales Revenue</p>
-              <p className="text-xl font-bold text-emerald-400 mt-1">₹{summary.totalRevenue.toLocaleString('en-IN')}</p>
+              <p className="text-xl font-bold text-emerald-400 mt-1">₹{(summary.totalRevenue || 0).toLocaleString('en-IN')}</p>
             </div>
 
             <div className="bg-slate-800/50 p-4 rounded-xl border border-emerald-900/30">
               <p className="text-xs text-slate-400">Raw Material COGS</p>
-              <p className="text-xl font-bold text-rose-300 mt-1">₹{summary.totalMaterialCost.toLocaleString('en-IN')}</p>
+              <p className="text-xl font-bold text-rose-300 mt-1">₹{(summary.totalMaterialCost || 0).toLocaleString('en-IN')}</p>
             </div>
 
             <div className="bg-slate-800/50 p-4 rounded-xl border border-emerald-900/30">
               <p className="text-xs text-slate-400">Operating Expenses</p>
-              <p className="text-xl font-bold text-rose-400 mt-1">₹{summary.totalExpenses.toLocaleString('en-IN')}</p>
+              <p className="text-xl font-bold text-rose-400 mt-1">₹{(summary.totalExpenses || 0).toLocaleString('en-IN')}</p>
             </div>
 
             <div className="bg-gradient-to-tr from-emerald-950 to-teal-950 p-4 rounded-xl border border-emerald-700/60">
               <p className="text-xs text-emerald-300 font-semibold">Net Business Profit</p>
-              <p className="text-2xl font-bold text-emerald-300 mt-1">₹{summary.netProfit.toLocaleString('en-IN')}</p>
+              <p className="text-2xl font-bold text-emerald-300 mt-1">₹{(summary.netProfit || 0).toLocaleString('en-IN')}</p>
             </div>
           </div>
         </div>
