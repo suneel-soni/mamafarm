@@ -39,6 +39,7 @@ jobs:
           BUILD_STATIC: 'true'
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.mamafarm.in/api' }}
         run: |
+          node scripts/toggle-dynamic.js static
           npm run build
           touch ./out/.nojekyll
           cp CNAME ./out/CNAME || true
