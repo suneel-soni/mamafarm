@@ -18,6 +18,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mamafarm-frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,6 +30,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: ./mamafarm-frontend/package-lock.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -39,15 +43,14 @@ jobs:
           BUILD_STATIC: 'true'
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.mamafarm.in/api' }}
         run: |
-          node scripts/toggle-dynamic.js static
           npm run build
           touch ./out/.nojekyll
-          cp CNAME ./out/CNAME || true
+          echo "mamafarm.in" > ./out/CNAME
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out
+          path: ./mamafarm-frontend/out
 
   deploy:
     environment:
