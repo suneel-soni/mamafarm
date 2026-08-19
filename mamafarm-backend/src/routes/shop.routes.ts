@@ -73,12 +73,17 @@ router.get('/:id', async (req: Request, res: Response) => {
     let totalReturnedQty = 0;
     let totalReplacedQty = 0;
     let totalRefunds = 0;
+    let totalReplacedAmount = 0;
 
     returns.forEach((r: any) => {
       const isRep = r.type === 'replacement' || r.isReplacement;
       if (isRep) {
         r.items?.forEach((item: any) => {
-          totalReplacedQty += Number(item.quantity || 0);
+          const qty = Number(item.quantity || 0);
+          const rate = Number(item.rate || 0);
+          const amt = Number(item.amount !== undefined && item.amount > 0 ? item.amount : qty * rate);
+          totalReplacedQty += qty;
+          totalReplacedAmount += amt;
         });
       } else {
         totalRefunds += Number(r.totalRefundAmount || 0);
@@ -93,26 +98,28 @@ router.get('/:id', async (req: Request, res: Response) => {
     // Net Total Sales after deducting returned sprout value
     const netSalesVal = Math.max(0, grossDeliveredVal - totalRefunds);
 
-    // Net Sales Payment Collected
-    const netSalesPayment = Math.min(grossPaid, netSalesVal);
-
     // Outstanding Dues = Net Total Sales - Gross Payments Collected
-    const calculatedOutstanding = Math.max(0, netSalesVal - grossPaid);
+    const calculatedOutstanding = Math.max(0, deliveries.reduce((sum, d) => sum + Math.max(0, (d.netAmount || 0) - (d.amountPaid || 0)), 0) - totalStandalonePaid);
+
+    // Actual Collection = Net Sales - Total Due - Total Replaced Amount
+    const actualCollection = Math.max(0, netSalesVal - calculatedOutstanding - totalReplacedAmount);
 
     if (
       shop.totalDeliveredValue !== netSalesVal ||
-      shop.totalPaidAmount !== netSalesPayment ||
+      shop.totalPaidAmount !== actualCollection ||
       shop.outstandingBalance !== calculatedOutstanding ||
       shop.totalDeliveredQuantity !== totalDeliveredQty ||
       shop.totalReturnedQuantity !== totalReturnedQty ||
-      shop.totalReplacedQuantity !== totalReplacedQty
+      shop.totalReplacedQuantity !== totalReplacedQty ||
+      shop.totalReplacedAmount !== totalReplacedAmount
     ) {
       shop.totalDeliveredValue = netSalesVal;
-      shop.totalPaidAmount = netSalesPayment;
+      shop.totalPaidAmount = actualCollection;
       shop.outstandingBalance = calculatedOutstanding;
       shop.totalDeliveredQuantity = totalDeliveredQty;
       shop.totalReturnedQuantity = totalReturnedQty;
       shop.totalReplacedQuantity = totalReplacedQty;
+      shop.totalReplacedAmount = totalReplacedAmount;
       shop.currentQuantity = Math.max(0, totalDeliveredQty - totalReturnedQty);
       await shop.save();
     }
@@ -164,6 +171,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const returnEntries = returns.map((r: any) => {
       const isRep = r.type === 'replacement' || r.isReplacement;
       const itemsList = r.items?.map((i: any) => `${i.quantity} ${i.sproutType || 'Sprouts'}`).join(', ') || 'Sprouts';
+      const repAmt = r.items?.reduce((s: number, i: any) => s + Number(i.amount !== undefined && i.amount > 0 ? i.amount : (i.quantity || 0) * (i.rate || 0)), 0) || Number(r.totalRefundAmount || 0);
       return {
         _id: r._id,
         id: r._id,
@@ -176,8 +184,8 @@ router.get('/:id', async (req: Request, res: Response) => {
           ? `Replaced ${itemsList} (${r.reason || 'Expired Exchange'})`
           : `Returned ${itemsList} (${r.reason || 'Unsold'})`,
         debit: 0,
-        credit: isRep ? 0 : (r.totalRefundAmount || 0),
-        amountPaid: isRep ? 0 : (r.totalRefundAmount || 0),
+        credit: isRep ? repAmt : (r.totalRefundAmount || 0),
+        amountPaid: isRep ? repAmt : (r.totalRefundAmount || 0),
         paymentStatus: isRep ? 'replaced' : 'refunded',
         balance: 0,
         items: r.items,
@@ -232,11 +240,12 @@ router.get('/:id', async (req: Request, res: Response) => {
         totalDeliveredQty,
         totalReturnedQty,
         totalReplacedQty,
+        totalReplacedAmount,
         currentQuantity: Math.max(0, totalDeliveredQty - totalReturnedQty),
         grossDeliveredVal,
         totalDeliveredVal: netSalesVal,
         grossPaid,
-        totalPaid: netSalesPayment,
+        totalPaid: actualCollection,
         totalRefunds,
         pendingPayment: calculatedOutstanding,
         dueSyncDate,

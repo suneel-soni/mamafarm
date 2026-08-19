@@ -165,8 +165,7 @@ router.get('/sales', async (req: Request, res: Response) => {
       });
     }
 
-    const payments = await Payment.find({ $or: [{ entityType: 'shop' }, { entityType: { $exists: false } }] });
-    const totalCollectionAllTime = Math.max(0, totalRevenue - pendingCollection);
+    const totalCollectionAllTime = Math.max(0, totalRevenue - pendingCollection - totalReplacedAmount);
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentYear = now.getFullYear();
@@ -179,12 +178,25 @@ router.get('/sales', async (req: Request, res: Response) => {
         })
         .reduce((sum, d) => sum + (d.netAmount || 0), 0);
 
-      const collectionsInMonth = payments
-        .filter((p) => {
-          const dt = new Date(p.paymentDate);
+      const duesInMonth = deliveries
+        .filter((d) => {
+          const dt = new Date(d.deliveryDate);
           return dt.getMonth() === idx && dt.getFullYear() === currentYear;
         })
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
+        .reduce((sum, d) => sum + Math.max(0, (d.netAmount || 0) - (d.amountPaid || 0)), 0);
+
+      const replacedInMonth = returns
+        .filter((r) => {
+          const isRep = r.type === 'replacement' || r.isReplacement;
+          const dt = new Date(r.returnDate || r.createdAt);
+          return isRep && dt.getMonth() === idx && dt.getFullYear() === currentYear;
+        })
+        .reduce((sum, r) => {
+          const repSum = r.items?.reduce((iSum: number, item: any) => iSum + Number(item.amount || (item.quantity * item.rate) || 0), 0) || 0;
+          return sum + repSum;
+        }, 0);
+
+      const collectionsInMonth = Math.max(0, salesInMonth - duesInMonth - replacedInMonth);
 
       return {
         month: m,

@@ -12,6 +12,7 @@ export interface IShop extends Document {
   totalDeliveredQuantity: number;
   totalReturnedQuantity: number;
   totalReplacedQuantity: number;
+  totalReplacedAmount: number;
   outstandingBalance: number;
   totalDeliveredValue: number;
   totalPaidAmount: number;
@@ -38,6 +39,7 @@ const shopSchema = new Schema<IShop>(
     totalDeliveredQuantity: { type: Number, default: 0 },
     totalReturnedQuantity: { type: Number, default: 0 },
     totalReplacedQuantity: { type: Number, default: 0 },
+    totalReplacedAmount: { type: Number, default: 0 },
     outstandingBalance: { type: Number, default: 0 },
     totalDeliveredValue: { type: Number, default: 0 },
     totalPaidAmount: { type: Number, default: 0 },

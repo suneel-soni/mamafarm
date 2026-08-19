@@ -18,12 +18,17 @@ async function recalculateShop(shopId: string) {
   let totalReturnedQty = 0;
   let totalReplacedQty = 0;
   let totalRefunds = 0;
+  let totalReplacedAmount = 0;
 
   returns.forEach((r) => {
     const isRep = r.type === 'replacement' || r.isReplacement;
     if (isRep) {
       r.items.forEach((item: any) => {
-        totalReplacedQty += Number(item.quantity || 0);
+        const qty = Number(item.quantity || 0);
+        const rate = Number(item.rate || 0);
+        const amt = Number(item.amount !== undefined && item.amount > 0 ? item.amount : qty * rate);
+        totalReplacedQty += qty;
+        totalReplacedAmount += amt;
       });
     } else {
       totalRefunds += Number(r.totalRefundAmount || 0);
@@ -60,15 +65,16 @@ async function recalculateShop(shopId: string) {
   );
 
   const netSalesVal = Math.max(0, grossDeliveredValue - totalRefunds);
-  const netSalesPayment = Math.min(grossPaid, netSalesVal);
-  const calculatedOutstanding = Math.max(0, netSalesVal - grossPaid);
+  const totalDue = Math.max(0, deliveries.reduce((sum, d) => sum + Math.max(0, (d.netAmount || 0) - (d.amountPaid || 0)), 0) - totalStandalonePaid);
+  const actualCollection = Math.max(0, netSalesVal - totalDue - totalReplacedAmount);
 
   shop.totalDeliveredQuantity = totalDeliveredQty;
   shop.totalReturnedQuantity = totalReturnedQty;
   shop.totalReplacedQuantity = totalReplacedQty;
+  shop.totalReplacedAmount = totalReplacedAmount;
   shop.totalDeliveredValue = netSalesVal;
-  shop.totalPaidAmount = netSalesPayment;
-  shop.outstandingBalance = calculatedOutstanding;
+  shop.totalPaidAmount = actualCollection;
+  shop.outstandingBalance = totalDue;
   shop.currentQuantity = Math.max(0, totalDeliveredQty - totalReturnedQty);
   await shop.save();
 }
@@ -106,17 +112,16 @@ router.post('/', async (req: Request, res: Response) => {
     const normalizedItems = (body.items || []).map((item: any) => {
       const qty = Number(item.quantity) || 0;
       const rate = Number(item.rate) || 0;
+      const amt = item.amount !== undefined && item.amount !== null && Number(item.amount) > 0 ? Number(item.amount) : qty * rate;
       return {
         ...item,
         quantity: qty,
         rate: rate,
-        amount: isReplacement ? 0 : (item.amount !== undefined ? Number(item.amount) : qty * rate),
+        amount: amt,
       };
     });
 
-    const totalRefundAmount = isReplacement
-      ? 0
-      : normalizedItems.reduce((sum: number, item: any) => sum + item.amount, 0);
+    const totalRefundAmount = normalizedItems.reduce((sum: number, item: any) => sum + item.amount, 0);
 
     const newReturn = await ReturnOrder.create({
       ...body,
@@ -155,17 +160,16 @@ router.put('/:id', async (req: Request, res: Response) => {
     const normalizedItems = rawItems.map((item: any) => {
       const qty = Number(item.quantity) || 0;
       const rate = Number(item.rate) || 0;
+      const amt = item.amount !== undefined && item.amount !== null && Number(item.amount) > 0 ? Number(item.amount) : qty * rate;
       return {
         ...item,
         quantity: qty,
         rate: rate,
-        amount: isReplacement ? 0 : (item.amount !== undefined ? Number(item.amount) : qty * rate),
+        amount: amt,
       };
     });
 
-    const totalRefundAmount = isReplacement
-      ? 0
-      : normalizedItems.reduce((sum: number, item: any) => sum + item.amount, 0);
+    const totalRefundAmount = normalizedItems.reduce((sum: number, item: any) => sum + item.amount, 0);
 
     const updated = await ReturnOrder.findByIdAndUpdate(
       id,

@@ -28,11 +28,16 @@ async function recalculateShopCounters(shopId: string) {
   let totalReturnedQty = 0;
   let totalReplacedQty = 0;
   let totalRefunds = 0;
+  let totalReplacedAmount = 0;
   returns.forEach((r) => {
     const isRep = r.type === 'replacement' || r.isReplacement;
     if (isRep) {
       r.items?.forEach((item: any) => {
-        totalReplacedQty += Number(item.quantity || 0);
+        const qty = Number(item.quantity || 0);
+        const rate = Number(item.rate || 0);
+        const amt = Number(item.amount !== undefined && item.amount > 0 ? item.amount : qty * rate);
+        totalReplacedQty += qty;
+        totalReplacedAmount += amt;
       });
     } else {
       totalRefunds += Number(r.totalRefundAmount || 0);
@@ -63,15 +68,16 @@ async function recalculateShopCounters(shopId: string) {
   const grossPaid = totalDeliveryPaid + totalStandalonePaid;
 
   const netSalesVal = Math.max(0, totalDeliveredValue - totalRefunds);
-  const netSalesPayment = Math.min(grossPaid, netSalesVal);
-  const outstandingBalance = Math.max(0, netSalesVal - grossPaid);
+  const totalDue = Math.max(0, deliveries.reduce((sum, d) => sum + Math.max(0, (d.netAmount || 0) - (d.amountPaid || 0)), 0) - totalStandalonePaid);
+  const actualCollection = Math.max(0, netSalesVal - totalDue - totalReplacedAmount);
 
   shop.totalDeliveredQuantity = totalDeliveredQty;
   shop.totalReturnedQuantity = totalReturnedQty;
   shop.totalReplacedQuantity = totalReplacedQty;
+  shop.totalReplacedAmount = totalReplacedAmount;
   shop.totalDeliveredValue = netSalesVal;
-  shop.totalPaidAmount = netSalesPayment;
-  shop.outstandingBalance = outstandingBalance;
+  shop.totalPaidAmount = actualCollection;
+  shop.outstandingBalance = totalDue;
   shop.currentQuantity = Math.max(0, totalDeliveredQty - totalReturnedQty);
   if (deliveries.length > 0) {
     const sorted = [...deliveries].sort((a, b) => new Date(b.deliveryDate || b.createdAt).getTime() - new Date(a.deliveryDate || a.createdAt).getTime());
