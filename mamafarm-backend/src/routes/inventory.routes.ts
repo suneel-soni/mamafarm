@@ -5,63 +5,127 @@ import { successResponse, errorResponse } from '../utils/response';
 
 const router = Router();
 
-// GET all inventory items
+// GET all inventory items with procurement tracking
 router.get('/', async (req: Request, res: Response) => {
   try {
+    // Clean up any legacy dummy mock inventory items if present
+    await Inventory.deleteMany({
+      itemName: {
+        $in: [
+          'Green Moong Beans (Organic)',
+          'Fresh Organic Sprouts (Packed)',
+          'Stand-up Packaging Pouches (200g)',
+        ],
+      },
+    });
+
     let items = await Inventory.find().sort({ itemName: 1 });
+    const materials = await Material.find().populate('supplier').sort({ purchaseDate: -1, createdAt: -1 });
 
-    // Seed default inventory items if collection is empty
-    if (items.length === 0) {
-      const rawMaterials = await Material.find();
-      const seedItems = [
-        {
-          itemName: 'Green Moong Beans (Organic)',
-          type: 'raw_material',
-          quantity: 250,
-          unit: 'kg',
-          minThreshold: 50,
-          valuationPerUnit: 110,
-          location: 'Main Warehouse',
-        },
-        {
-          itemName: 'Fresh Organic Sprouts (Packed)',
-          type: 'finished_sprout',
-          quantity: 400,
-          unit: 'packets',
-          minThreshold: 100,
-          valuationPerUnit: 25,
-          location: 'Cold Storage',
-        },
-        {
-          itemName: 'Stand-up Packaging Pouches (200g)',
-          type: 'packaging',
-          quantity: 5000,
-          unit: 'pcs',
-          minThreshold: 1000,
-          valuationPerUnit: 2.5,
-          location: 'Packaging Room',
-        },
-      ];
+    // Ensure all actual purchased materials are represented in Inventory SKUs
+    for (const mat of materials) {
+      let invType: 'raw_material' | 'packaging' | 'finished_sprout' = 'raw_material';
+      const cat = (mat.category || '').toLowerCase();
+      if (cat.includes('pack') || cat.includes('box') || cat.includes('pouch') || cat.includes('sticker')) {
+        invType = 'packaging';
+      }
 
-      // Also map any materials present
-      rawMaterials.forEach((mat) => {
-        if (!seedItems.some((s) => s.itemName.toLowerCase() === mat.name.toLowerCase())) {
-          seedItems.push({
-            itemName: mat.name,
-            type: 'raw_material',
-            quantity: mat.quantity || 0,
-            unit: mat.unit || 'kg',
-            minThreshold: mat.minStockAlert || 10,
-            valuationPerUnit: mat.purchasePrice || 0,
-            location: 'Main Store',
-          });
-        }
-      });
-
-      items = await Inventory.insertMany(seedItems);
+      const match = items.find(
+        (it) => it.itemName.toLowerCase().trim() === mat.name.toLowerCase().trim()
+      );
+      if (!match) {
+        const createdInv = await Inventory.create({
+          itemName: mat.name.trim(),
+          type: invType,
+          quantity: mat.quantity || 0,
+          unit: mat.unit || 'kg',
+          minThreshold: mat.minStockAlert || 10,
+          valuationPerUnit: mat.purchasePrice || 0,
+          location: 'Main Store',
+        });
+        items.push(createdInv);
+      } else if (match.type !== invType && invType === 'packaging') {
+        match.type = 'packaging';
+        await match.save();
+      }
     }
 
-    return successResponse(res, items);
+    // Compute comprehensive procurement tracking stats
+    let totalProcuredCost = 0;
+    let rawBeanCost = 0;
+    let rawBeanQuantity = 0;
+    let packagingCost = 0;
+    let packagingQuantity = 0;
+
+    const itemWiseProcurement: Record<
+      string,
+      {
+        itemName: string;
+        category: string;
+        unit: string;
+        totalQuantity: number;
+        totalSpent: number;
+        avgPrice: number;
+        purchaseCount: number;
+        lastPurchasedDate: string;
+      }
+    > = {};
+
+    materials.forEach((mat: any) => {
+      const qty = Number(mat.quantity || 0);
+      const price = Number(mat.purchasePrice || 0);
+      const totalAmount = qty * price;
+      totalProcuredCost += totalAmount;
+
+      const cat = mat.category || 'Raw Bean';
+      const catLower = cat.toLowerCase();
+      if (catLower.includes('raw') || catLower.includes('bean') || catLower.includes('grain')) {
+        rawBeanCost += totalAmount;
+        rawBeanQuantity += qty;
+      } else if (
+        catLower.includes('pack') ||
+        catLower.includes('box') ||
+        catLower.includes('pouch') ||
+        catLower.includes('sticker')
+      ) {
+        packagingCost += totalAmount;
+        packagingQuantity += qty;
+      }
+
+      const key = mat.name.trim();
+      if (!itemWiseProcurement[key]) {
+        itemWiseProcurement[key] = {
+          itemName: key,
+          category: cat,
+          unit: mat.unit || 'kg',
+          totalQuantity: 0,
+          totalSpent: 0,
+          avgPrice: 0,
+          purchaseCount: 0,
+          lastPurchasedDate: mat.purchaseDate || mat.createdAt,
+        };
+      }
+      itemWiseProcurement[key].totalQuantity += qty;
+      itemWiseProcurement[key].totalSpent += totalAmount;
+      itemWiseProcurement[key].purchaseCount += 1;
+      itemWiseProcurement[key].avgPrice = Math.round(
+        itemWiseProcurement[key].totalSpent / (itemWiseProcurement[key].totalQuantity || 1)
+      );
+    });
+
+    return successResponse(res, {
+      items,
+      purchasedMaterials: materials,
+      procurementStats: {
+        totalProcuredCost,
+        totalPurchasesCount: materials.length,
+        rawBeanCost,
+        rawBeanQuantity,
+        packagingCost,
+        packagingQuantity,
+        itemWiseSummary: Object.values(itemWiseProcurement),
+      },
+    });
   } catch (error: any) {
     return errorResponse(res, error.message || 'Error fetching inventory', 500);
   }

@@ -117,25 +117,22 @@ router.get('/:id', async (req: Request, res: Response) => {
       await shop.save();
     }
 
-    const formatDateTime = (dateVal: any) => {
+    const formatDate = (dateVal: any) => {
       if (!dateVal) return '';
       const d = new Date(dateVal);
       if (isNaN(d.getTime())) return '';
-      return d.toLocaleString('en-IN', {
+      return d.toLocaleDateString('en-IN', {
         timeZone: 'Asia/Kolkata',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
       });
     };
 
     const deliveryEntries = deliveries.map((d: any) => ({
       _id: d._id,
       id: d._id,
-      date: formatDateTime(d.deliveryDate || d.createdAt),
+      date: formatDate(d.deliveryDate || d.createdAt),
       timestamp: new Date(d.deliveryDate || d.createdAt).getTime(),
       type: 'delivery',
       reference: d.deliveryNumber || 'DEL-2026',
@@ -152,7 +149,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       .map((p: any) => ({
         _id: p._id,
         id: p._id,
-        date: formatDateTime(p.paymentDate || p.createdAt),
+        date: formatDate(p.paymentDate || p.createdAt),
         timestamp: new Date(p.paymentDate || p.createdAt).getTime(),
         type: 'payment',
         reference: p.paymentNumber || 'PAY-2026',
@@ -170,7 +167,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return {
         _id: r._id,
         id: r._id,
-        date: formatDateTime(r.returnDate || r.createdAt),
+        date: formatDate(r.returnDate || r.createdAt),
         timestamp: new Date(r.returnDate || r.createdAt).getTime(),
         type: isRep ? 'replacement' : 'return',
         returnType: isRep ? 'replacement' : 'return',
@@ -221,8 +218,8 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const unpaidDeliveries = deliveries.filter((d: any) => (d.netAmount || 0) > (d.amountPaid || 0));
     const dueSyncDate = unpaidDeliveries.length > 0
-      ? formatDateTime(unpaidDeliveries[0].deliveryDate || unpaidDeliveries[0].createdAt)
-      : (deliveries.length > 0 ? formatDateTime(deliveries[0].deliveryDate || deliveries[0].createdAt) : formatDateTime(new Date()));
+      ? formatDate(unpaidDeliveries[0].deliveryDate || unpaidDeliveries[0].createdAt)
+      : (deliveries.length > 0 ? formatDate(deliveries[0].deliveryDate || deliveries[0].createdAt) : formatDate(new Date()));
 
     return successResponse(res, {
       shop,

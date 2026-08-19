@@ -135,6 +135,36 @@ router.get('/sales', async (req: Request, res: Response) => {
 
     const dailyGraph = Object.values(dailyMap);
 
+    const weeklyGraph: { week: string; sales: number; deliveries: number }[] = [];
+    for (let i = 7; i >= 0; i--) {
+      const endDaysAgo = i * 7;
+      const startDaysAgo = (i + 1) * 7 - 1;
+
+      const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - startDaysAgo, 0, 0, 0, 0);
+      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - endDaysAgo, 23, 59, 59, 999);
+
+      const startKey = startDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' });
+      const endKey = endDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' });
+      const weekLabel = `${startKey} - ${endKey}`;
+
+      let weekSales = 0;
+      let weekDeliveries = 0;
+
+      deliveries.forEach((d) => {
+        const dt = new Date(d.deliveryDate);
+        if (dt >= startDate && dt <= endDate) {
+          weekSales += d.netAmount || 0;
+          weekDeliveries += 1;
+        }
+      });
+
+      weeklyGraph.push({
+        week: weekLabel,
+        sales: weekSales,
+        deliveries: weekDeliveries,
+      });
+    }
+
     const payments = await Payment.find({ $or: [{ entityType: 'shop' }, { entityType: { $exists: false } }] });
     const totalCollectionAllTime = Math.max(0, totalRevenue - pendingCollection);
 
@@ -177,6 +207,7 @@ router.get('/sales', async (req: Request, res: Response) => {
       totalReplacedAmount,
       topPerformingShops,
       dailyGraph,
+      weeklyGraph,
       monthlyGraph,
     });
   } catch (error: any) {
